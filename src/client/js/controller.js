@@ -10,7 +10,7 @@
  * No UI logic, no game logic ... just communication with server.
  */
 
-var socket = io.connect('localhost');
+var socket = io.connect('http://localhost/');
 
 socket.on('ack', function(data) {
     console.log(data);

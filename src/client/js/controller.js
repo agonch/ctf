@@ -15,9 +15,7 @@ console.log("Connecting!");
 var socket = io();
 
 
-
-
-socket.on('gameState', function(names_new) {
+socket.on('gameStateNames', function(names_new) {
     console.log("Get games state");
     names = names_new;
     notifyUserUpdate();

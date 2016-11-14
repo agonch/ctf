@@ -2,7 +2,6 @@
 function startTheGame() {
 	var gameRenderer = new GameRenderer();
 	gameRenderer.start();
-	gameRenderer.test();
 }
 
 function updateView() {

@@ -61,8 +61,8 @@ class GameRenderer {
 		console.log("diffY: " + diffY);
 		console.log("pos: " + pos);
 		this.context.translate(diffX, diffY);
-		this._draw();
 		this.players[this.playerId] = pos;
+        this._draw();
 	}
 
 	//movePlayerToLocation(playerId, x, y) {

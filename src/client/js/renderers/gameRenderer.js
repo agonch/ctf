@@ -1,13 +1,3 @@
-// Starts the game
-function startTheGame() {
-	var gameRenderer = new GameRenderer();
-	gameRenderer.start();
-}
-
-function updateView() {
-	GAME_RENDERER.render(GAME_STAGE);
-}
-
 // This class exposes APIs that the controller can use to manipulate the game UI.
 class GameRenderer {
 	constructor() {
@@ -15,7 +5,7 @@ class GameRenderer {
 	}
 
 	start() {
-		document.body.appendChild(GAME_RENDERER.view);
+		document.body.appendChild(GLOBAL_RENDERER.view);
 	}
 
 	addPlayer(playerId, x, y) {
@@ -25,5 +15,9 @@ class GameRenderer {
 	movePlayerToLocation(playerId, x, y) {
 		this.playerRenderer.setLocationOfPlayer(playerId, x, y);
 	}
+}
+
+function updateView() {
+	GLOBAL_RENDERER.render(GLOBAL_STAGE);
 }
 

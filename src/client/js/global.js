@@ -5,6 +5,8 @@ const WINDOW_HEIGHT = window.innerHeight - 20;
 const PLAYER_COLOR = 0x66ff99;
 const PLAYER_RADIUS = 15;
 
-const GAME_RENDERER = PIXI.autoDetectRenderer(WINDOW_WIDTH, WINDOW_HEIGHT,
+const GLOBAL_RENDERER = PIXI.autoDetectRenderer(WINDOW_WIDTH, WINDOW_HEIGHT,
         	{ backgroundColor: BACKGROUND_COLOR, antialias: true });
-const GAME_STAGE = new PIXI.Container();
+const GLOBAL_STAGE = new PIXI.Container();
+
+const GAME_RENDERER = new GameRenderer();

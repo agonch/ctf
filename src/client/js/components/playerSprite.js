@@ -5,7 +5,7 @@ class PlayerSprite {
 		this.radius = radius;
 		this.color = color;
 		this.graphics = new PIXI.Graphics();
-		GAME_STAGE.addChild(this.graphics);
+		GLOBAL_STAGE.addChild(this.graphics);
 		this._updateGraphics();
 	}
 

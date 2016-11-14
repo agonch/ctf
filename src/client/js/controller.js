@@ -57,9 +57,9 @@ function setupKeyListeners(socket) {
 
     document.addEventListener('keydown', function (e) {
         if (String.fromCharCode(e.keyCode) in keys_pressed) {
-            // console.log('keydown ', e.keyCode, String.fromCharCode(e.keyCode));
+            console.log('keydown ', e.keyCode, String.fromCharCode(e.keyCode));
             keys_pressed[String.fromCharCode(e.keyCode)] = true;
-            // console.log(keys_pressed);
+            console.log(keys_pressed);
             sendToServerKeyUpdates();
         }
     });
@@ -67,7 +67,6 @@ function setupKeyListeners(socket) {
     document.addEventListener("keyup", function (e) {
         if (String.fromCharCode(e.keyCode) in keys_pressed) {
             keys_pressed[String.fromCharCode(e.keyCode)] = false;
-            sendToServerKeyUpdates();
         }
     });
 
@@ -79,14 +78,7 @@ function setupKeyListeners(socket) {
         if (keys_pressed['A'] && keys_pressed['D']) {
             keys_pressed['A'] = keys_pressed['D'] = false;
         }
-        var send = false;
-        keys_pressed.forEach(pressed => {
-            if (pressed) {
-                send = true;
-                return;
-            }
-        });
-        if (send) {
+        if (keys_pressed['W'] || keys_pressed['A'] || keys_pressed['S'] || keys_pressed['D']) {
             socket.emit('updateKeys', keys_pressed);
         }
     }

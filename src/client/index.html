@@ -4,14 +4,25 @@
     <head>
         <title>CTF game</title>
         <meta charset="utf-8">
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r79/three.min.js"></script>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/4.1.1/pixi.min.js"></script>
+
+        <!-- Import the libraries -->
+        <script type="text/javascript" 
+            src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/4.1.1/pixi.min.js"></script>
         <script src="/socket.io/socket.io.js"></script>
+
+        <!-- Import js stuff -->
         <script type="text/javascript" src="js/controller.js"></script>
-        <script type="text/javascript" src="js/canvas.js"></script>
+        <script type="text/javascript" src="js/global.js"></script>
+
+        <!-- Import the components -->
+        <script type="text/javascript" src="js/components/playerSprite.js"></script>
+
+        <!-- Import the renderers -->
+        <script type="text/javascript" src="js/renderers/gameRenderer.js"></script>
+        <script type="text/javascript" src="js/renderers/playerRenderer.js"></script>
     </head>
 
-    <body onload="start();">
+    <body onload="startTheGame();">
     </body>
 
 </html>

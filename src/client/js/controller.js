@@ -9,7 +9,13 @@
  *
  * No UI logic, no game logic ... just communication with server.
  */
+const GAME_RENDERER = new GameRenderer();
+
 var names = [];
+
+window.onresize = function(event) {
+    GAME_RENDERER.updateCanvas();
+};
 
 console.log("Connecting!");
 const socket = io();
@@ -27,7 +33,6 @@ function setupSocket(socket) {
         console.log("Player joined: " + name);
         names.push(name);
         notifyUserUpdate();
-        GAME_RENDERER.addPlayer("Joe", 10, 10);
     });
 
     socket.on('removePlayer', function(name) {
@@ -46,13 +51,11 @@ function setupSocket(socket) {
         console.log("Got ack!");
         var person = prompt("Please enter your name", "Harry Potter");
         socket.emit('name', person);
-        GAME_RENDERER.start();
-        GAME_RENDERER.addPlayer("Bob", 10, 10);
+        GAME_RENDERER.initializeCanvas();
     });
 
     socket.on('updatePosition', function(pos) {
         console.log("Updating pos: " + pos);
-        GAME_RENDERER.movePlayerToLocation("Bob", pos[0], pos[1]);
     });
 }
 

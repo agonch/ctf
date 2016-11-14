@@ -17,10 +17,10 @@ app.get('/', function (req, res) {
     res.sendFile(path.join(__dirname, '../client/index.html'));
 });
 
-app.use(express.static('../client/'))
+app.use(express.static('../client/'));
 
 io.on('connection', function (socket) {
-    console.log("New connection");
+    console.log("New connection with " + socket.id);
 
     var values = [];
     for (var key in names) {
@@ -31,7 +31,7 @@ io.on('connection', function (socket) {
     socket.emit('gameState', values);
     socket.emit('ack');
 
-    socket.on('disconnect', function(){
+    socket.on('disconnect', function() {
         console.log( socket.name + ' has disconnected from the chat.' + socket.id);
         io.emit('removePlayer', names[socket.id]);
         delete names[socket.id];
@@ -40,7 +40,7 @@ io.on('connection', function (socket) {
     socket.on('name', function (name) {
         names[socket.id] = name;
         console.log("New name: " + name);
-        io.emit('newPlayer', name);
+        // io.emit('newPlayer', name);
 
     });
 });

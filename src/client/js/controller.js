@@ -14,15 +14,17 @@ var names = [];
 console.log("Connecting!");
 var socket = io();
 
+
+
 socket.on('ack', function() {
     console.log("Got ack!");
     var person = prompt("Please enter your name", "Harry Potter");
     socket.emit('name', person);
 });
 
-socket.on('gameState', function(names) {
+socket.on('gameState', function(names_new) {
     console.log("Get games state");
-    names = names;
+    names = names_new;
     notifyUserUpdate();
 });
 
@@ -39,5 +41,6 @@ socket.on('removePlayer', function(name) {
 });
 
 function notifyUserUpdate() {
+    console.log("updating names");
     console.log(names);
 }

@@ -48,7 +48,7 @@ function setupSocket(socket) {
     });
 
     socket.on('updatePosition', function(pos) {
-
+        console.log("Updating pos: " + pos);
     });
 }
 

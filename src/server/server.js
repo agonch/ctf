@@ -7,7 +7,6 @@ var SingleGameState = require('./SingleGameState.js');
 
 
 const gameState = new SingleGameState(2);
-const socketIdToNames = {};
 
 http.listen(3000, function() {
     console.log('listening on *:3000');
@@ -28,18 +27,35 @@ io.on('connection', function (socket) {
 
     socket.on('disconnect', function() {
         console.log( socket.name + ' has disconnected from the chat.' + socket.id);
-        io.emit('removePlayer', socketIdToNames[socket.id]);
-        delete socketIdToNames[socket.id];
-        gameState.removePlayer(socketIdToNames[socket.id]);
+        io.emit('removePlayer', gameState.getPlayerName(socket.id));
+        gameState.removePlayer(socket.id);
     });
 
     socket.on('name', function (name) {
-        socketIdToNames[socket.id] = name;
-        gameState.addPlayer(name);
+        gameState.addPlayer(socket.id, name);
         console.log("New name: " + name);
-        console.log("Names: " + getValues(socketIdToNames));
+        console.log("Names: " + gameState.getPlayerNames());
         socket.emit('gameStateNames', gameState.getPlayerNames());
         socket.broadcast.emit('newPlayer', name);
+    });
+
+    socket.on('updateKeys', function(keysPressed) {
+        var [x, y] = gameState.getPlayerPosition(socket.id);
+        if (keysPressed['W']) {
+            y++;
+        }
+        if (keysPressed['A']) {
+            x--;
+        }
+        if (keysPressed['S']) {
+            y--;
+        }
+        if (keysPressed['D']) {
+            x++;
+        }
+        var pos = [x, y];
+        gameState.updatePlayerPosition(socket.id, pos);
+        socket.emit('updatePosition', pos);
     });
 });
 

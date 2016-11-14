@@ -11,29 +11,37 @@ module.exports = class SingleGameState {
         }
         this.maxPlayers = maxPlayers;
         this.playerPositions = {};
-        this.playerNums = {};
-        this.names = [];
+        //this.playerNums = {};
+        this.playerNames = {};
     }
 
-    addPlayer(name) {
-        this.names.push(name);
-        if (this.names.length > this.maxPlayers) {
+    addPlayer(id, name) {
+        this.playerNames[id] = name;
+        if (this.playerNames.length > this.maxPlayers) {
             throw new Error("num players exceeded limit..was given ", this.maxPlayers);
         }
-        this.playerPositions[name] = [0, 0];
-        this.playerNums[name] = this.names.length;
+        this.playerPositions[id] = [0, 0];
+        //this.playerNums[name] = this.names.length;
     }
 
-    removePlayer() {
-        // TODO
+    removePlayer(id) {
+        delete this.playerNames[id];
     }
 
-    updatePlayerPosition(name, pos) {
-        this.playerPositions[name] = pos;
+    updatePlayerPosition(id, pos) {
+        this.playerPositions[id] = pos;
+    }
+
+    getPlayerPosition(id) {
+        return this.playerPositions[id];
     }
 
     getPlayerNames() {
-        return this.names;
+        return getValues(this.playerNames);
+    }
+
+    getPlayerName(id) {
+        return this.playerNames[id];
     }
 
     getPlayerPositions() {

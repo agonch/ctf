@@ -57,9 +57,7 @@ function setupKeyListeners(socket) {
 
     document.addEventListener('keydown', function (e) {
         if (String.fromCharCode(e.keyCode) in keys_pressed) {
-            console.log('keydown ', e.keyCode, String.fromCharCode(e.keyCode));
             keys_pressed[String.fromCharCode(e.keyCode)] = true;
-            console.log(keys_pressed);
             sendToServerKeyUpdates();
         }
     });

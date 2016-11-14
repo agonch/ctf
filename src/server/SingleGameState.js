@@ -49,3 +49,14 @@ module.exports = class SingleGameState {
     }
 
 };
+
+
+function getValues(o) {
+    var values = [];
+    for (var key in o) {
+        if (o.hasOwnProperty(key)) {
+            values.push(o[key]);
+        }
+    }
+    return values;
+}

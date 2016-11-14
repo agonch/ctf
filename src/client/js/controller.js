@@ -55,6 +55,7 @@ function setupSocket(socket) {
     });
 
     socket.on('updatePosition', function(pos) {
+        console.log("name: " + name);
         GAME_RENDERER.setPlayerLocation(pos);
     });
 }

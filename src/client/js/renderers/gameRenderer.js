@@ -12,13 +12,17 @@ class GameRenderer {
 		this.playerId = playerId;
 		this.players[playerId] = [1000, 1000];
 		var that = this;
+        /*this.interval = setInterval(function() {
+
+        }, 33);*/
+        this._draw();
 	}
 
 	_draw() {
-        var [x, y] = that._getLocalCoords(0, 0);
-        that.context.clearRect(x, y, x + 10000, y + 10000);
-        that._drawGridLines();
-        that.drawSelf();
+        var [x, y] = this._getLocalCoords(0, 0);
+        this.context.clearRect(x, y, x + 10000, y + 10000);
+        this._drawGridLines();
+        this.drawSelf();
 	}
 
 	drawSelf() {

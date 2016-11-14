@@ -79,11 +79,16 @@ function setupKeyListeners(socket) {
         if (keys_pressed['A'] && keys_pressed['D']) {
             keys_pressed['A'] = keys_pressed['D'] = false;
         }
+        var send = false;
         keys_pressed.forEach(pressed => {
             if (pressed) {
-                socket.emit('updateKeys', keys_pressed);
+                send = true;
+                return;
             }
         });
+        if (send) {
+            socket.emit('updateKeys', keys_pressed);
+        }
     }
 
 }

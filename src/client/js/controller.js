@@ -9,9 +9,35 @@
  *
  * No UI logic, no game logic ... just communication with server.
  */
+var names = [];
 
-var socket = io.connect('http://localhost/');
+console.log("Connecting!");
+var socket = io();
 
-socket.on('ack', function(data) {
-    console.log(data);
+socket.on('ack', function() {
+    console.log("Got ack!");
+    var person = prompt("Please enter your name", "Harry Potter");
+    socket.emit('name', person);
 });
+
+socket.on('gameState', function(names) {
+    console.log("Get games state");
+    names = names;
+    notifyUserUpdate();
+});
+
+socket.on('newPlayer', function(name) {
+    console.log("Player joined: " + name);
+    names.push(name);
+    notifyUserUpdate();
+});
+
+socket.on('removePlayer', function(name) {
+    console.log("Player disconnected: " + name);
+    names.splice(names.indexOf(name), 1);
+    notifyUserUpdate();
+});
+
+function notifyUserUpdate() {
+    console.log(names);
+}

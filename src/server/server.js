@@ -1,10 +1,11 @@
-var app = require('express')();
+var express = require('express');
+var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var path = require('path');
 
 
-var names = [];
+var names = {};
 
 http.listen(3000, function() {
     console.log('listening on *:3000');
@@ -16,22 +17,30 @@ app.get('/', function (req, res) {
     res.sendFile(path.join(__dirname, '../client/index.html'));
 });
 
-// app.get('/client/js/canvas.js', function (req, res)  {
-//     res.setHeader("Content-Type", "text/javascript");
-//     res.sendFile(path.join(__dirname, '../client/js/canvas.js'));
-// });
-//
-// app.get('/client/js/controller.js', function (req, res)  {
-//     res.setHeader("Content-Type", "text/javascript");
-//     res.sendFile(path.join(__dirname, '../client/js/controller.js'));
-// });
+app.use(express.static('../client/'))
 
 io.on('connection', function (socket) {
     console.log("New connection");
+
+    var values = [];
+    for (var key in names) {
+        if (names.hasOwnProperty(key)) {
+            values.push(names[key]);
+        }
+    }
+    socket.emit('gameState', values);
     socket.emit('ack');
+
+    socket.on('disconnect', function(){
+        console.log( socket.name + ' has disconnected from the chat.' + socket.id);
+        io.emit('removePlayer', names[socket.id]);
+        delete names[socket.id];
+    });
+
     socket.on('name', function (name) {
-        names.push(name);
+        names[socket.id] = name;
         console.log("New name: " + name);
         io.emit('newPlayer', name);
+
     });
 });

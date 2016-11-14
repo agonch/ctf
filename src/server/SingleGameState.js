@@ -20,7 +20,7 @@ module.exports = class SingleGameState {
         if (this.playerNames.length > this.maxPlayers) {
             throw new Error("num players exceeded limit..was given ", this.maxPlayers);
         }
-        this.playerPositions[id] = [0, 0];
+        this.playerPositions[id] = [1000, 1000];
         //this.playerNums[name] = this.names.length;
     }
 

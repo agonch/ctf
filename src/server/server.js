@@ -42,13 +42,13 @@ io.on('connection', function (socket) {
     socket.on('updateKeys', function(keysPressed) {
         var [x, y] = gameState.getPlayerPosition(socket.id);
         if (keysPressed['W']) {
-            y++;
+            y--;
         }
         if (keysPressed['A']) {
             x--;
         }
         if (keysPressed['S']) {
-            y--;
+            y++;
         }
         if (keysPressed['D']) {
             x++;

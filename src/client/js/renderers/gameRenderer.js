@@ -4,35 +4,81 @@ class GameRenderer {
 		this.players = {};
 	}
 
-	initializeCanvas() {
+	initializeCanvas(playerId) {
 		this.canvas = document.getElementById("canvas");
 		this.context = canvas.getContext("2d");
-		this.canvas.width = window.innerWidth - (window.innerWidth % 2);
-		this.canvas.height = window.innerHeight - (window.innerHeight % 2);
-
-		this.drawSelf();
+		this.canvas.width = window.innerWidth - (window.innerWidth % 2) - 30;
+		this.canvas.height = window.innerHeight - (window.innerHeight % 2) - 30;
+		this.playerId = playerId;
+		this.players[playerId] = [1000, 1000];
+		var that = this;
+        this.interval = setInterval(function() {
+        	var [x, y] = that._getLocalCoords(0, 0);
+            that.context.clearRect(x, y, x + 10000, y + 10000);
+            that._drawGridLines();
+            that.drawSelf();
+        }, 33);
 	}
 
 	drawSelf() {
 		this.context.beginPath();
-	    this.context.arc(this.canvas.width / 2, this.canvas.height / 2, 50, 0, 2 * Math.PI);
+		var pos = this.players[this.playerId];
+		var [x, y] = this._getLocalCoords(pos[0], pos[1]);
+	    this.context.arc(x, y, 50, 0, 2 * Math.PI);
+        this.context.fillStyle = 'green';
+        this.context.fill();
 	    this.context.stroke();
 	}
 
-	addPlayer(playerId, x, y) {
-		this.playerRenderer.addPlayer(playerId, x, y);
+	_drawGridLines() {
+        for (var i = 0; i < 10000; i+=50) {
+            this.context.beginPath();
+            var [offsetX, offsetY] = this._getLocalCoords(0, i);
+            this.context.moveTo(offsetX, offsetY);
+            this.context.lineTo(offsetX + 10000, offsetY);
+            this.context.stroke();
+        }
+        for (var i = 0; i < 10000; i+=50) {
+            this.context.beginPath();
+            var [offsetX, offsetY] = this._getLocalCoords(i, 0);
+            this.context.moveTo(offsetX, offsetY);
+            this.context.lineTo(offsetX, offsetY + 10000);
+            this.context.stroke();
+        }
 	}
 
-	movePlayerToLocation(playerId, x, y) {
-		this.playerRenderer.setLocationOfPlayer(playerId, x, y);
+	setPlayerLocation(pos) {
+		var [curX, curY] = this.players[this.playerId];
+		var [newX, newY] = pos;
+		var diffX = curX - newX;
+		var diffY = curY - newY;
+		console.log("diffX: " + diffX);
+		console.log("diffY: " + diffY);
+		console.log("pos: " + pos);
+		this.context.translate(diffX, diffY);
+		this.players[this.playerId] = pos;
 	}
+
+	//movePlayerToLocation(playerId, x, y) {
+	//	this.playerRenderer.setLocationOfPlayer(playerId, x, y);
+	//}
 
 	updateCanvas() {
+    	this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 		this.canvas.width = window.innerWidth - (window.innerWidth % 2);
 		this.canvas.height = window.innerHeight - (window.innerHeight % 2);
-
+		this._drawGridLines();
 		this.drawSelf();
 	}
+
+    _getLocalCoords(x, y) {
+        var [playerX, playerY] = [1000, 1000]; // TODO fix these hardcodings
+        var cornerX = playerX - this.canvas.width / 2;
+        var cornerY = playerY - this.canvas.height / 2;
+        var offsetX = x - cornerX;
+        var offsetY = y - cornerY;
+        return [offsetX, offsetY];
+    }
 }
 
 function updateView() {

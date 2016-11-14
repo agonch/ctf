@@ -50,12 +50,12 @@ function setupSocket(socket) {
     socket.on('ack', function() {
         console.log("Got ack!");
         var person = prompt("Please enter your name", "Harry Potter");
+        GAME_RENDERER.initializeCanvas(person);
         socket.emit('name', person);
-        GAME_RENDERER.initializeCanvas();
     });
 
     socket.on('updatePosition', function(pos) {
-        console.log("Updating pos: " + pos);
+        GAME_RENDERER.setPlayerLocation(pos);
     });
 }
 

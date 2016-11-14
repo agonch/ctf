@@ -12,12 +12,13 @@ class GameRenderer {
 		this.playerId = playerId;
 		this.players[playerId] = [1000, 1000];
 		var that = this;
-        this.interval = setInterval(function() {
-        	var [x, y] = that._getLocalCoords(0, 0);
-            that.context.clearRect(x, y, x + 10000, y + 10000);
-            that._drawGridLines();
-            that.drawSelf();
-        }, 33);
+	}
+
+	_draw() {
+        var [x, y] = that._getLocalCoords(0, 0);
+        that.context.clearRect(x, y, x + 10000, y + 10000);
+        that._drawGridLines();
+        that.drawSelf();
 	}
 
 	drawSelf() {
@@ -56,6 +57,7 @@ class GameRenderer {
 		console.log("diffY: " + diffY);
 		console.log("pos: " + pos);
 		this.context.translate(diffX, diffY);
+		this._draw();
 		this.players[this.playerId] = pos;
 	}
 

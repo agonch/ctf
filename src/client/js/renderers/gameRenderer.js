@@ -32,17 +32,17 @@ class GameRenderer {
 
 	_drawGridLines() {
         for (var i = 0; i < 10000; i+=50) {
-            this.context.beginPath();
             var [offsetX, offsetY] = this._getLocalCoords(0, i);
+            var [offsetXCol, offsetYCol] = this._getLocalCoords(i, 0);
+            this.context.beginPath();
             this.context.moveTo(offsetX, offsetY);
             this.context.lineTo(offsetX + 10000, offsetY);
+            this.context.lineWidth = 0.25;
             this.context.stroke();
-        }
-        for (var i = 0; i < 10000; i+=50) {
             this.context.beginPath();
-            var [offsetX, offsetY] = this._getLocalCoords(i, 0);
-            this.context.moveTo(offsetX, offsetY);
-            this.context.lineTo(offsetX, offsetY + 10000);
+            this.context.moveTo(offsetXCol, offsetYCol);
+            this.context.lineTo(offsetXCol, offsetYCol + 10000);
+            this.context.lineWidth = 0.25;
             this.context.stroke();
         }
 	}

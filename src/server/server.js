@@ -21,16 +21,7 @@ app.use(express.static('../client/'));
 
 io.on('connection', function (socket) {
     console.log("New connection with " + socket.id);
-
-    var values = [];
-    for (var key in names) {
-        if (names.hasOwnProperty(key)) {
-            values.push(names[key]);
-        }
-    }
-    socket.emit('gameState', values);
     socket.emit('ack');
-
     socket.on('disconnect', function() {
         console.log( socket.name + ' has disconnected from the chat.' + socket.id);
         io.emit('removePlayer', names[socket.id]);
@@ -40,7 +31,19 @@ io.on('connection', function (socket) {
     socket.on('name', function (name) {
         names[socket.id] = name;
         console.log("New name: " + name);
-        // io.emit('newPlayer', name);
-
+        var values = getValues(names);
+        console.log("Values: " + values);
+        socket.emit('gameState', values);
+        socket.broadcast.emit('newPlayer', name);
     });
 });
+
+function getValues(o) {
+    var values = [];
+    for (var key in o) {
+        if (o.hasOwnProperty(key)) {
+            values.push(o[key]);
+        }
+    }
+    return values;
+}

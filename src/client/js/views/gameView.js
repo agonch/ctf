@@ -21,9 +21,24 @@ class GameView {
 	draw() {
         var [x, y] = this._getLocalCoords(0, 0);
         this.context.clearRect(x, y, x + this.boardSize[0], y + this.boardSize[1]);
+        this._drawBackground();
+        this._drawGameBoard();
         this._drawGridLines();
         this._drawPlayers();
 	}
+
+    _drawBackground() {
+        var [x, y] = this._getLocalCoords(-this.canvas.width, -this.canvas.height);
+        this.context.fillStyle = 'blue';
+        this.context.fillRect(x, y, this.boardSize[0] + this.canvas.width * 2, 
+            this.boardSize[1] + this.canvas.height * 2);
+    }
+
+    _drawGameBoard() {
+        var [x, y] = this._getLocalCoords(0, 0);
+        this.context.fillStyle = 'white';
+        this.context.fillRect(x, y, this.boardSize[0], this.boardSize[1]);
+    }
 
 	_drawPlayers() {
 		for (var key in this.players) {

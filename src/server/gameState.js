@@ -9,8 +9,8 @@ module.exports = class GameState {
         this.playerPositions = {};
         //this.playerNums = {};
         this.playerNames = {}; // TODO enforce uniqueness
-        this.defaultSpawnPoint = [1000, 1000]; // TODO generate this
-        this.defaultBoardSize = [10000, 10000];
+        this.defaultSpawnPoint = [100, 100]; // TODO generate this
+        this.defaultBoardSize = [500, 500];
         this.defaultPlayerSize = 50;
     }
 

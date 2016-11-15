@@ -1,9 +1,5 @@
-/**
- * Created by agonch on 11/13/16.
- */
-
-/* game state for a single game (of 4 player) */
-module.exports = class SingleGameState {
+/* Game state for a single game (of 4 player) */
+module.exports = class GameState {
 
     constructor(maxPlayers) {
         if (maxPlayers < 0) {

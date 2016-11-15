@@ -1,20 +1,20 @@
 // This class exposes APIs that the controller can use to manipulate the game UI.
-class GameRenderer {
+class GameView {
 	constructor() {
 		this.players = {};
 	}
 
-	initializeCanvas(playerId, spawnPoint, boardSize, playerSize, playerPositions) {
+	initializeCanvas(startData) {
 		this.canvas = document.getElementById("canvas");
 		this.context = canvas.getContext("2d");
 		this.canvas.width = window.innerWidth - (window.innerWidth % 2) - 30; // 30 pixels prevents scrollbars from appearing
 		this.canvas.height = window.innerHeight - (window.innerHeight % 2) - 30;
-		this.playerId = playerId;
-		this.spawnPoint = spawnPoint;
-		this.players = playerPositions;
-		this.players[playerId] = spawnPoint;
-		this.boardSize = boardSize;
-		this.playerSize = playerSize;
+		this.playerId = startData.playerId;
+		this.spawnPoint = startData.spawnPoint;
+		this.players = startData.playerPositions;
+		this.players[startData.playerId] = startData.spawnPoint;
+		this.boardSize = startData.boardSize;
+		this.playerSize = startData.playerSize;
         this.draw();
 	}
 
@@ -81,10 +81,5 @@ class GameRenderer {
         var offsetY = y - cornerY;
         return [offsetX, offsetY];
     }
-}
-
-// do we need this?
-function updateView() {
-	GLOBAL_RENDERER.render(GLOBAL_STAGE);
 }
 

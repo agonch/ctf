@@ -9,10 +9,10 @@
  *
  * No UI logic, no game logic ... just communication with server.
  */
-const GAME_RENDERER = new GameRenderer();
+const GAME_VIEW = new GameView();
 
 window.onresize = function(event) {
-    GAME_RENDERER.draw();
+    GAME_VIEW.draw();
 };
 
 console.log("Connecting!");
@@ -24,25 +24,26 @@ function setupSocket(socket) {
 
     socket.on('newPlayer', function(name, pos) {
         console.log("Player joined: " + name);
-        GAME_RENDERER.setPlayerLocation(name, pos);
+        GAME_VIEW.setPlayerLocation(name, pos);
     });
 
     socket.on('removePlayer', function(name) {
         console.log("Player disconnected: " + name);
-        GAME_RENDERER.removePlayer(name);
+        GAME_VIEW.removePlayer(name);
     });
 
-    socket.on('ack', function(spawnPoint, boardSize, defaultPlayerSize, playerPositions) {
+    socket.on('ack', function(startData) {
         console.log("Got ack!");
         var name = prompt("Please enter your name", "Harry Potter");
-        GAME_RENDERER.initializeCanvas(name, spawnPoint, boardSize, defaultPlayerSize, playerPositions);
+        startData.playerId = name;
+        GAME_VIEW.initializeCanvas(startData);
         socket.emit('name', name);
     });
 
     socket.on('updatePosition', function(name, pos) {
         console.log("name: " + name);
         console.log("pos: " + pos);
-        GAME_RENDERER.setPlayerLocation(name, pos);
+        GAME_VIEW.setPlayerLocation(name, pos);
     });
 }
 

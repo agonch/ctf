@@ -3,10 +3,10 @@ var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var path = require('path');
-var SingleGameState = require('./SingleGameState.js');
+var GameState = require('./gameState.js');
 
 
-const gameState = new SingleGameState(2);
+const gameState = new GameState(2);
 
 http.listen(3000, function() {
     console.log('listening on *:3000');
@@ -23,7 +23,14 @@ app.use(express.static('../client/'));
 
 io.on('connection', function (socket) {
     console.log("New connection with " + socket.id);
-    socket.emit('ack', gameState.defaultSpawnPoint, gameState.defaultBoardSize, gameState.defaultPlayerSize, gameState.getPlayerPositions());
+    socket.emit('ack', 
+        {
+            spawnPoint: gameState.defaultSpawnPoint, 
+            boardSize: gameState.defaultBoardSize, 
+            playerSize: gameState.defaultPlayerSize, 
+            playerPositions: gameState.getPlayerPositions()
+        }
+    );
 
     socket.on('disconnect', function() {
         console.log( socket.name + ' has disconnected from the chat.' + socket.id);

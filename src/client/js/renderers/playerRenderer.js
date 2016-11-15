@@ -1,3 +1,5 @@
+// delete and/or merge into playerSprite
+
 class PlayerRenderer {
 	constructor() {
 		// Maps a unique player id to the player sprite

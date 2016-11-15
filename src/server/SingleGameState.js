@@ -12,7 +12,10 @@ module.exports = class SingleGameState {
         this.maxPlayers = maxPlayers;
         this.playerPositions = {};
         //this.playerNums = {};
-        this.playerNames = {};
+        this.playerNames = {}; // TODO enforce uniqueness
+        this.defaultSpawnPoint = [1000, 1000]; // TODO generate this
+        this.defaultBoardSize = [10000, 10000];
+        this.defaultPlayerSize = 50;
     }
 
     addPlayer(id, name) {
@@ -20,11 +23,12 @@ module.exports = class SingleGameState {
         if (this.playerNames.length > this.maxPlayers) {
             throw new Error("num players exceeded limit..was given ", this.maxPlayers);
         }
-        this.playerPositions[id] = [1000, 1000];
+        this.playerPositions[id] = this.defaultSpawnPoint;
         //this.playerNums[name] = this.names.length;
     }
 
     removePlayer(id) {
+        delete this.playerPositions[id];
         delete this.playerNames[id];
     }
 
@@ -45,7 +49,12 @@ module.exports = class SingleGameState {
     }
 
     getPlayerPositions() {
-        return this.playerPositions;
+        var resultPositions = {};
+        for (var key in this.playerPositions) {
+            console.log("name: " + this.playerNames[key]);
+            resultPositions[this.playerNames[key]] = this.playerPositions[key];
+        }
+        return resultPositions;
     }
 
 };

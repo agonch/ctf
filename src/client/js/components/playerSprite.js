@@ -1,3 +1,5 @@
+// delete or keep for future graphical effects
+
 class PlayerSprite {
 	constructor(x, y, radius, color) {
 		this.x = x;

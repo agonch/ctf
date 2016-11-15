@@ -11,10 +11,8 @@
  */
 const GAME_RENDERER = new GameRenderer();
 
-var names = [];
-
 window.onresize = function(event) {
-    GAME_RENDERER.updateCanvas();
+    GAME_RENDERER.draw();
 };
 
 console.log("Connecting!");
@@ -23,69 +21,57 @@ setupSocket(socket);
 setupKeyListeners(socket);
 
 function setupSocket(socket) {
-    socket.on('gameStateNames', function(names_new) {
-        console.log("Get games state");
-        names = names_new;
-        notifyUserUpdate();
-    });
 
-    socket.on('newPlayer', function(name) {
+    socket.on('newPlayer', function(name, pos) {
         console.log("Player joined: " + name);
-        names.push(name);
-        notifyUserUpdate();
+        GAME_RENDERER.setPlayerLocation(name, pos);
     });
 
     socket.on('removePlayer', function(name) {
         console.log("Player disconnected: " + name);
-        names.splice(names.indexOf(name), 1);
-        notifyUserUpdate();
+        GAME_RENDERER.removePlayer(name);
     });
 
-    function notifyUserUpdate() {
-        console.log("updating names");
-        console.log(names);
-    }
-
-
-    socket.on('ack', function() {
+    socket.on('ack', function(spawnPoint, boardSize, defaultPlayerSize, playerPositions) {
         console.log("Got ack!");
-        var person = prompt("Please enter your name", "Harry Potter");
-        GAME_RENDERER.initializeCanvas(person);
-        socket.emit('name', person);
+        var name = prompt("Please enter your name", "Harry Potter");
+        GAME_RENDERER.initializeCanvas(name, spawnPoint, boardSize, defaultPlayerSize, playerPositions);
+        socket.emit('name', name);
     });
 
-    socket.on('updatePosition', function(pos) {
+    socket.on('updatePosition', function(name, pos) {
         console.log("name: " + name);
-        GAME_RENDERER.setPlayerLocation(pos);
+        console.log("pos: " + pos);
+        GAME_RENDERER.setPlayerLocation(name, pos);
     });
 }
 
 function setupKeyListeners(socket) {
-    const keys_pressed = {'W': false, 'A': false, 'S': false, 'D': false};
+    const keysPressed = {'W': false, 'A': false, 'S': false, 'D': false};
 
     document.addEventListener('keydown', function (e) {
-        if (String.fromCharCode(e.keyCode) in keys_pressed) {
-            keys_pressed[String.fromCharCode(e.keyCode)] = true;
+        if (String.fromCharCode(e.keyCode) in keysPressed) {
+            keysPressed[String.fromCharCode(e.keyCode)] = true;
             sendToServerKeyUpdates();
         }
     });
 
     document.addEventListener("keyup", function (e) {
-        if (String.fromCharCode(e.keyCode) in keys_pressed) {
-            keys_pressed[String.fromCharCode(e.keyCode)] = false;
+        if (String.fromCharCode(e.keyCode) in keysPressed) {
+            keysPressed[String.fromCharCode(e.keyCode)] = false;
         }
     });
 
     function sendToServerKeyUpdates() {
         // cancel out opposite movements (up and down, left and right)
-        if (keys_pressed['W'] && keys_pressed['S']) {
-            keys_pressed['W'] = keys_pressed['S'] = false;
+        if (keysPressed['W'] && keysPressed['S']) {
+            keysPressed['W'] = keysPressed['S'] = false;
         }
-        if (keys_pressed['A'] && keys_pressed['D']) {
-            keys_pressed['A'] = keys_pressed['D'] = false;
+        if (keysPressed['A'] && keysPressed['D']) {
+            keysPressed['A'] = keysPressed['D'] = false;
         }
-        if (keys_pressed['W'] || keys_pressed['A'] || keys_pressed['S'] || keys_pressed['D']) {
-            socket.emit('updateKeys', keys_pressed);
+        if (keysPressed['W'] || keysPressed['A'] || keysPressed['S'] || keysPressed['D']) {
+            socket.emit('updateKeys', keysPressed);
         }
     }
 

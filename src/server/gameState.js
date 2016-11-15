@@ -29,7 +29,22 @@ module.exports = class GameState {
     }
 
     updatePlayerPosition(id, pos) {
-        this.playerPositions[id] = pos;
+        var x = pos[0];
+        var y = pos[1];
+
+        if(pos[0] < 0) {
+            x = 0;
+        } else if(pos[0] > this.defaultBoardSize[0]) {
+            x = this.defaultBoardSize[0];
+        }
+
+        if(pos[1] < 0) {
+            y = 0;
+        } else if(pos[1] > this.defaultBoardSize[1]) {
+            y = this.defaultBoardSize[1];
+        }
+
+        this.playerPositions[id] = [x, y];
     }
 
     getPlayerPosition(id) {

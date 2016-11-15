@@ -58,11 +58,13 @@ io.on('connection', function (socket) {
         if (keysPressed['D']) {
             x+=3;
         }
-        var pos = [x, y];
-        gameState.updatePlayerPosition(socket.id, pos);
+        
+        gameState.updatePlayerPosition(socket.id, [x, y]);
         console.log(socket.id);
         console.log(gameState.getPlayerName(socket.id));
-        socket.broadcast.emit('updatePosition', gameState.getPlayerName(socket.id), pos);
-        socket.emit('updatePosition', gameState.getPlayerName(socket.id), pos);
+        socket.broadcast.emit('updatePosition', gameState.getPlayerName(socket.id), 
+            gameState.getPlayerPosition(socket.id));
+        socket.emit('updatePosition', gameState.getPlayerName(socket.id), 
+            gameState.getPlayerPosition(socket.id));
     });
 });

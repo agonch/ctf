@@ -1,3 +1,10 @@
+const Player_Colors = {
+    'Player1': 'red',
+    'Player2': 'green',
+    'Player3': 'blue',
+    'Player4': 'orange'
+};
+
 // This class exposes APIs that the controller can use to manipulate the game UI.
 class GameView {
 	constructor() {
@@ -9,12 +16,13 @@ class GameView {
 		this.context = canvas.getContext("2d");
 		this.canvas.width = window.innerWidth - (window.innerWidth % 2) - 30; // 30 pixels prevents scrollbars from appearing
 		this.canvas.height = window.innerHeight - (window.innerHeight % 2) - 30;
-		this.playerId = startData.playerId;
+		this.playerName = startData.playerName;
 		this.spawnPoint = startData.spawnPoint;
 		this.players = startData.playerPositions;
-		this.players[startData.playerId] = startData.spawnPoint;
+		this.players[startData.playerName] = startData.spawnPoint;
 		this.boardSize = startData.boardSize;
 		this.playerSize = startData.playerSize;
+        this.playerNumbers = startData.playerNumbers; // maps name to player number (ex., "Anton" --> 3, means Anton is player 3)
         this.draw();
 	}
 
@@ -41,16 +49,30 @@ class GameView {
     }
 
 	_drawPlayers() {
-		for (var key in this.players) {
+		for (var name in this.players) {
+            if(!this.players.hasOwnProperty(name))
+                continue;
             this.context.beginPath();
-            var pos = this.players[key];
+            var pos = this.players[name];
             var [x, y] = this._getLocalCoords(pos[0], pos[1]);
             this.context.arc(x, y, this.playerSize, 0, 2 * Math.PI);
-            this.context.fillStyle = 'green';
+            var playerNum = this.playerNumbers[name];
+            this.context.fillStyle = Player_Colors["Player" + playerNum];
             this.context.fill();
             this.context.stroke();
+            this._drawNameAbovePlayer(name);
         }
 	}
+
+    _drawNameAbovePlayer(name) {
+        const paddingTop = 5;
+        // var playerNum = this.playerNumbers[name];
+        this.context.font = "20px serif";
+        // this.context.fillStyle = Player_Colors["Player" + playerNum];
+        var pos = this.players[name];
+        var [x, y] = this._getLocalCoords(pos[0]- this.playerSize, pos[1] - this.playerSize - paddingTop);
+        this.context.fillText(name, x, y);
+    }
 
 	_drawGridLines() {
         for (var i = 0; i < this.boardSize[0]; i+=50) {
@@ -77,7 +99,7 @@ class GameView {
 	}
 
 	setPlayerLocation(name, pos) {
-		if (name == this.playerId) {
+		if (name == this.playerName) {
             var [curX, curY] = this.players[name];
             var [newX, newY] = pos;
             var diffX = curX - newX;
@@ -87,6 +109,10 @@ class GameView {
 		this.players[name] = pos;
         this.draw();
 	}
+
+    setPlayerNum(name, playerNum) {
+        this.playerNumbers[name] = playerNum;
+    }
 
     _getLocalCoords(x, y) {
         var [playerX, playerY] = this.spawnPoint;

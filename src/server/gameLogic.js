@@ -1,21 +1,22 @@
-const MAX_VELOCITY = 20;
-const MIN_VELOCITY = 3;
+const VELOCITY = 5; // position units per tick
 
 /* Consider this a static class, with helper methods, for determining gameState updates */
 module.exports = {
 
-    calculateNewPosition : function (curr_velocity_x, curr_velocity_y, x, y, keysPressed) {
+    calculateNewPosition : function (x, y, keysPressed) {
         if (keysPressed['W']) {
-            y-=3;
+            y -= VELOCITY;
         }
         if (keysPressed['A']) {
-            x-=3;
+            x -= VELOCITY;
         }
         if (keysPressed['S']) {
-            y+=3;
+            y += VELOCITY;
         }
         if (keysPressed['D']) {
-            x+=3;
+            x += VELOCITY;
         }
+
+        return [x, y];
     }
 };

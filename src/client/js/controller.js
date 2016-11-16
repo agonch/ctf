@@ -22,8 +22,9 @@ setupKeyListeners(socket);
 
 function setupSocket(socket) {
 
-    socket.on('newPlayer', function(name, pos) {
-        console.log("Player joined: " + name);
+    socket.on('newPlayer', function(name, pos, playerNum) {
+        console.log("Player joined: " + name + " this is player # ", playerNum);
+        GAME_VIEW.setPlayerNum(name, playerNum);
         GAME_VIEW.setPlayerLocation(name, pos);
     });
 
@@ -32,12 +33,37 @@ function setupSocket(socket) {
         GAME_VIEW.removePlayer(name);
     });
 
-    socket.on('ack', function(startData) {
+    /* (1) Server connected to me (hit 'ack'), get user input (name, walls, flag location, etc.)
+     * (2) Send over to server ('new_game_input')
+     * (3) If server approves, we hit ('initialize_approved'), and we can initialize their game
+     * (4) If server denies our input (duplicate name, illegal wall placement, etc..)
+     *        we hit event ('initialize_denied')
+     */
+
+    socket.on('ack', function() {
         console.log("Got ack!");
         var name = prompt("Please enter your name", "Harry Potter");
-        startData.playerId = name;
+        const newInputData = {
+            name: name,
+            wallLocations: null, // TODO later
+            turretLocations: null, // TODO later
+            // ..etc.
+        };
+        socket.emit('new_game_input', newInputData);
+    });
+
+    socket.on('initialize_approved', function (startData) {
         GAME_VIEW.initializeCanvas(startData);
-        socket.emit('name', name);
+    });
+
+    socket.on('initialize_denied', function (prevInputData, reason) {
+        alert('Cannot initialize game because of: ' + reason);
+        if (reason === 'duplicate name') {
+            prevInputData.name = prompt("Please enter another name, this one already exists");
+        } else {
+            // TODO
+        }
+        socket.emit('new_game_input', prevInputData); // try again
     });
 
     socket.on('updatePosition', function(name, pos) {
@@ -46,6 +72,7 @@ function setupSocket(socket) {
         GAME_VIEW.setPlayerLocation(name, pos);
     });
 }
+
 
 function setupKeyListeners(socket) {
     const keysPressed = {'W': false, 'A': false, 'S': false, 'D': false};

@@ -1,31 +1,49 @@
 /* Game state for a single game (of 4 player) */
+
+// Constants
+const MAX_PLAYERS = 4;
+
+/*
+ * NOTE: player 1 is top left corner, player 2 is top right corner
+ *       player 3 is bottom left and player 4 is bottom right
+ */
 module.exports = class GameState {
 
-    constructor(maxPlayers) {
-        if (maxPlayers < 0) {
-            throw new Error("cannot have < 0 players");
-        }
-        this.maxPlayers = maxPlayers;
+    constructor() {
+        // Player values
         this.playerPositions = {};
-        //this.playerNums = {};
-        this.playerNames = {}; // TODO enforce uniqueness
-        this.defaultSpawnPoint = [100, 100]; // TODO generate this
-        this.defaultBoardSize = [500, 500];
+        this.playerNames = {/* id --> name */};
+        this.playerNums = {/* id --> player # */}; // used to determine what sector of map to place them in
+
+        // Default values on start
+        this.defaultBoardSize = [800, 800];
+        var [b_w, b_h] = this.defaultBoardSize;
+        this.defaultSpawnPoints = {
+            'Player1': [b_w/4,   b_h/4],
+            'Player2': [b_w*3/4, b_h/4],
+            'Player3': [b_w/4,   b_h*3/4],
+            'Player4': [b_w*3/4, b_h*3/4]
+        };
         this.defaultPlayerSize = 50;
     }
 
+    numPlayersPresent() {
+        return Object.keys(this.playerNums).length;
+    }
+
     addPlayer(id, name) {
-        this.playerNames[id] = name;
-        if (this.playerNames.length > this.maxPlayers) {
-            throw new Error("num players exceeded limit..was given ", this.maxPlayers);
+        if (this.numPlayersPresent() >= MAX_PLAYERS) {
+            throw new Error("Can't have more than %d players.", MAX_PLAYERS);
         }
-        this.playerPositions[id] = this.defaultSpawnPoint;
-        //this.playerNums[name] = this.names.length;
+        this.playerNums[id] = this.numPlayersPresent() + 1;
+        this.playerPositions[id] = this.defaultSpawnPoints["Player" + this.playerNums[id]];
+        this.playerNames[id] = name;
     }
 
     removePlayer(id) {
         delete this.playerPositions[id];
         delete this.playerNames[id];
+        delete this.playerNums[id];
     }
 
     updatePlayerPosition(id, pos) {
@@ -59,13 +77,15 @@ module.exports = class GameState {
         return this.playerNames[id];
     }
 
-    getPlayerPositions() {
-        var resultPositions = {};
-        for (var key in this.playerPositions) {
-            console.log("name: " + this.playerNames[key]);
-            resultPositions[this.playerNames[key]] = this.playerPositions[key];
-        }
-        return resultPositions;
+    getAllPlayers() {
+        var nameToPos = {};
+        var nameToPlayerNum = {};
+        Object.keys(this.playerPositions).forEach(id => {
+            var name = this.playerNames[id];
+            nameToPos[name] = this.playerPositions[id];
+            nameToPlayerNum[name] = this.playerNums[id];
+        });
+        return [nameToPos, nameToPlayerNum];
     }
 
 };

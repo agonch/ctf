@@ -13,6 +13,7 @@ const lobbyManager = new LobbyManager();
 const ROOMS = {
     initializing: 'initializing', ready: 'ready' // socket rooms
 };
+var GameLoopInterval = null;
 
 http.listen(3000, function() {
     console.log('listening on *:3000');
@@ -71,7 +72,8 @@ io.on('connection', function (socket) {
         socket.emit('initialize_approved', startData);
         // for other players, (if any), send them just new player name and position
         socket.broadcast.emit('newPlayer', name, gameState.getPlayerPosition(socket.id), gameState.numPlayersPresent());
-        GameLoop();
+        if (GameLoopInterval === null)
+            GameLoop();
     });
 
     socket.on('client_ready', () => {
@@ -85,8 +87,9 @@ io.on('connection', function (socket) {
     });
 });
 
+
 function GameLoop() {
-    setInterval(() => {
+    GameLoopInterval = setInterval(() => {
         GameLogic.tickPlayerPositions(gameState);
 
         // get updated values to send to all clients (for this game)

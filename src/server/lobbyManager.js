@@ -6,7 +6,6 @@
 module.exports = class LobbyManager {
     constructor() {
         this.allNames = new Set();
-        this.gamesInPlayer = [];
         this.playersWaitingOnGame = []; // should be only of size 0 - 3
                                         // (if 4, we create a new game and match them together)
     }
@@ -22,4 +21,5 @@ module.exports = class LobbyManager {
     nameAlreadyExists(name) {
         return this.allNames.has(name);
     }
+
 };

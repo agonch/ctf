@@ -14,6 +14,7 @@ module.exports = class GameState {
         this.playerPositions = {};
         this.playerNames = {/* id --> name */};
         this.playerNums = {/* id --> player # */}; // used to determine what sector of map to place them in
+        this.playerVelocity = {};
 
         // Default values on start
         this.defaultBoardSize = [800, 800];
@@ -33,17 +34,25 @@ module.exports = class GameState {
 
     addPlayer(id, name) {
         if (this.numPlayersPresent() >= MAX_PLAYERS) {
-            throw new Error("Can't have more than %d players.", MAX_PLAYERS);
+            // throw new Error("Can't have more than %d players.", MAX_PLAYERS); TODO ignore for now
+                    // to allow more players
         }
-        this.playerNums[id] = this.numPlayersPresent() + 1;
+        var playerNum = this.numPlayersPresent() + 1;
+        // TODO remove next loop to restric to only 4 players
+        while (playerNum > 4) {
+            playerNum -= 4;
+        }
+        this.playerNums[id] = playerNum;
         this.playerPositions[id] = this.defaultSpawnPoints["Player" + this.playerNums[id]];
         this.playerNames[id] = name;
+        this.playerVelocity[id] = [0, 0];
     }
 
     removePlayer(id) {
         delete this.playerPositions[id];
         delete this.playerNames[id];
         delete this.playerNums[id];
+        delete this.playerVelocity[id];
     }
 
     updatePlayerPosition(id, pos) {

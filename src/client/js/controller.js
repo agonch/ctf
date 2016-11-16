@@ -9,98 +9,98 @@
  *
  * No UI logic, no game logic ... just communication with server.
  */
-const GAME_VIEW = new GameView();
+(function () {
+    const GAME_VIEW = new GameView();
 
-window.onresize = function(event) {
-    GAME_VIEW.draw();
-};
+    window.onresize = function (event) {
+        GAME_VIEW.draw();
+    };
 
-console.log("Connecting!");
-const socket = io();
-setupSocket(socket);
-setupKeyListeners(socket);
+    console.log("Connecting!");
+    const socket = io();
+    setupSocket(socket);
+    setupKeyListeners(socket);
 
-function setupSocket(socket) {
 
-    socket.on('newPlayer', function(name, pos, playerNum) {
-        console.log("Player joined: " + name + " this is player # ", playerNum);
-        GAME_VIEW.setPlayerNum(name, playerNum);
-        GAME_VIEW.setPlayerLocation(name, pos);
-    });
+    function setupSocket(socket) {
 
-    socket.on('removePlayer', function(name) {
-        console.log("Player disconnected: " + name);
-        GAME_VIEW.removePlayer(name);
-    });
+        socket.on('newPlayer', function (name, pos, playerNum) {
+            console.log("Player joined: " + name + " this is player # ", playerNum);
+            GAME_VIEW.setPlayerNum(name, playerNum);
+            GAME_VIEW.setPlayerLocation(name, pos);
+        });
 
-    /* (1) Server connected to me (hit 'ack'), get user input (name, walls, flag location, etc.)
-     * (2) Send over to server ('new_game_input')
-     * (3) If server approves, we hit ('initialize_approved'), and we can initialize their game
-     * (4) If server denies our input (duplicate name, illegal wall placement, etc..)
-     *        we hit event ('initialize_denied')
-     */
+        socket.on('removePlayer', function (name) {
+            console.log("Player disconnected: " + name);
+            GAME_VIEW.removePlayer(name);
+        });
 
-    socket.on('ack', function() {
-        console.log("Got ack!");
-        var name = prompt("Please enter your name", "Harry Potter");
-        const newInputData = {
-            name: name,
-            wallLocations: null, // TODO later
-            turretLocations: null, // TODO later
-            // ..etc.
-        };
-        socket.emit('new_game_input', newInputData);
-    });
+        /* (1) Server connected to me (hit 'ack'), get user input (name, walls, flag location, etc.)
+         * (2) Send over to server ('new_game_input')
+         * (3) If server approves, we hit ('initialize_approved'), and we can initialize their game
+         * (4) If server denies our input (duplicate name, illegal wall placement, etc..)
+         *        we hit event ('initialize_denied')
+         */
 
-    socket.on('initialize_approved', function (startData) {
-        GAME_VIEW.initializeCanvas(startData);
-    });
+        socket.on('ack', function () {
+            console.log("Got ack!");
+            var name = prompt("Please enter your name", "Harry Potter");
+            const newInputData = {
+                name: name,
+                wallLocations: null, // TODO later
+                turretLocations: null, // TODO later
+                // ..etc.
+            };
+            socket.emit('new_game_input', newInputData);
+        });
 
-    socket.on('initialize_denied', function (prevInputData, reason) {
-        alert('Cannot initialize game because of: ' + reason);
-        if (reason === 'duplicate name') {
-            prevInputData.name = prompt("Please enter another name, this one already exists");
-        } else {
-            // TODO
-        }
-        socket.emit('new_game_input', prevInputData); // try again
-    });
+        socket.on('initialize_approved', function (startData) {
+            console.log('initializing Canvas with --> ', JSON.stringify(startData, null, 4));
+            GAME_VIEW.initializeCanvas(startData);
+            socket.emit('client_ready');
+        });
 
-    socket.on('updatePosition', function(name, pos) {
-        console.log("name: " + name);
-        console.log("pos: " + pos);
-        GAME_VIEW.setPlayerLocation(name, pos);
-    });
-}
+        socket.on('initialize_denied', function (prevInputData, reason) {
+            alert('Cannot initialize game because of: ' + reason);
+            if (reason === 'duplicate name') {
+                prevInputData.name = prompt("Please enter another name, this one already exists");
+            } else {
+                // TODO
+            }
+            socket.emit('new_game_input', prevInputData); // try again
+        });
 
+        socket.on('updatePlayerPositions', function (names, nameToPosition) {
+            // this is emitted after every game loop tick (to update all dynamic object positions at once)
+            names.forEach(name => {
+                // console.log("Updating position of", name, " to ", nameToPosition[name]);
+                GAME_VIEW.setPlayerLocation(name, nameToPosition[name]);
+            });
+        });
+    }
+
+})();
 
 function setupKeyListeners(socket) {
     const keysPressed = {'W': false, 'A': false, 'S': false, 'D': false};
 
     document.addEventListener('keydown', function (e) {
-        if (String.fromCharCode(e.keyCode) in keysPressed) {
-            keysPressed[String.fromCharCode(e.keyCode)] = true;
-            sendToServerKeyUpdates();
+        var key = String.fromCharCode(e.keyCode);
+        if (key in keysPressed) {
+            // only emit if we have a velocity change (went from not pressing key to pressing it)
+            if (!keysPressed[key]) {
+                keysPressed[key] = true;
+                socket.emit('updateKeys', keysPressed);
+            }
         }
     });
 
     document.addEventListener("keyup", function (e) {
-        if (String.fromCharCode(e.keyCode) in keysPressed) {
-            keysPressed[String.fromCharCode(e.keyCode)] = false;
-        }
-    });
-
-    function sendToServerKeyUpdates() {
-        // cancel out opposite movements (up and down, left and right)
-        if (keysPressed['W'] && keysPressed['S']) {
-            keysPressed['W'] = keysPressed['S'] = false;
-        }
-        if (keysPressed['A'] && keysPressed['D']) {
-            keysPressed['A'] = keysPressed['D'] = false;
-        }
-        if (keysPressed['W'] || keysPressed['A'] || keysPressed['S'] || keysPressed['D']) {
+        var key = String.fromCharCode(e.keyCode);
+        // only emit if we have a velocity change (which by default we will have, since key is released)
+        if (key in keysPressed) {
+            keysPressed[key] = false;
             socket.emit('updateKeys', keysPressed);
         }
-    }
-
+    });
 }

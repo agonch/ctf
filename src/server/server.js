@@ -51,7 +51,7 @@ io.on('connection', function (socket) {
         var [gameState, gameId] = lobbyManager.addPlayer(socket.id, name);
         socket.join(gameId);
         console.log("New player: " + name, " This will be Player #", gameState.numPlayersPresent());
-        const [nameToPosition, nameToPlayerNumber] = gameState.getAllPlayers(id);
+        const [nameToPosition, nameToPlayerNumber] = gameState.getAllPlayers();
         const startData = {
             spawnPoint: gameState.getPlayerPosition(socket.id), // initially is default location for new player
             boardSize: gameState.defaultBoardSize,

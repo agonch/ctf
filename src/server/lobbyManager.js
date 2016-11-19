@@ -1,4 +1,4 @@
-
+var GameState = require('./gameState.js');
 /* This keeps track of all the gameStates (all games in play).
  * This acts as the lobby manager and global game state manager
  */
@@ -16,7 +16,7 @@ module.exports = class LobbyManager {
         var gameState = this.games[this.loadingGame];
         this.playerGame[id] = this.loadingGame;
         if (this.games[this.loadingGame].isFull()) {
-            loadingGame++;
+            this.loadingGame++;
             this.games.push(new GameState());
         }
         return [gameState, this.playerGame[id].toString()];

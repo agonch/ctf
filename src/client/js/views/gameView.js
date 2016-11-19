@@ -14,8 +14,8 @@ class GameView {
 	initializeCanvas(startData) {
 		this.canvas = document.getElementById("canvas");
 		this.context = canvas.getContext("2d");
-		this.canvas.width = window.innerWidth - (window.innerWidth % 2) - 30; // 30 pixels prevents scrollbars from appearing
-		this.canvas.height = window.innerHeight - (window.innerHeight % 2) - 30;
+		this.canvas.width = window.innerWidth - (window.innerWidth % 2) - 80; // 30 pixels prevents scrollbars from appearing
+		this.canvas.height = window.innerHeight - (window.innerHeight % 2) - 80;
 		this.playerName = startData.playerName;
 		this.spawnPoint = startData.spawnPoint;
 		this.players = startData.playerPositions;
@@ -27,13 +27,18 @@ class GameView {
 	}
 
 	draw() {
-        var [x, y] = this._getLocalCoords(0, 0);
-        this.context.clearRect(x, y, x + this.boardSize[0], y + this.boardSize[1]);
+        this._clearCanvas();
         this._drawBackground();
         this._drawGameBoard();
         this._drawGridLines();
         this._drawPlayers();
 	}
+
+    _clearCanvas() {
+        var [x, y] = this._getLocalCoords(-this.canvas.width, -this.canvas.height);
+        this.context.clearRect(x, y, this.boardSize[0] + this.canvas.width * 2,
+            this.boardSize[1] + this.canvas.height * 2);
+    }
 
     _drawBackground() {
         var [x, y] = this._getLocalCoords(-this.canvas.width, -this.canvas.height);

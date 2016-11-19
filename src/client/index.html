@@ -13,10 +13,35 @@
 
         <!-- Import js stuff -->
         <script type="text/javascript" src="js/controller.js"></script>
+
+        <!-- jQuery -->
+        <script src="//code.jquery.com/jquery-2.2.0.min.js"></script>
     </head>
 
     <body>
-        <canvas id="canvas"></canvas>
+        <div id="gameArea">
+            <div id="scores">
+                <span>Scores go here.</span>
+            </div>
+            <div id="chatbox">
+                <input id="chatinput" type="text" placeholder="Chat with team here." maxlengt="35" />
+            </div>
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <div id="startMenu">
+            <p>Welcome to CTF. Enter you nickname, press play, and we'll put you in a game.</p>
+            <input id="nameInput" type="text" tabindex="0" autofocus placeholder="Enter your name" maxlength="16" />
+            <p id="nameInputError" style="color:red;"></p>
+            <br />
+            <button id="startButton">Play</button>
+            <div id="howToPlay">
+                <!-- TODO  instructions later -->
+            </div>
+            <br />
+            <p id="numPlayersOnServer"></p>
+        </div>
+
     </body>
 
 </html>

@@ -18,8 +18,37 @@
 
     console.log("Connecting!");
     const socket = io();
-    setupSocket(socket);
-    setupKeyListeners(socket);
+    /* (1) Server connected to me (hit 'ack'), get user input (name, walls, flag location, etc.)
+     * (2) Send over to server ('new_game_input')
+     * (3) If server approves, we hit ('initialize_approved'), and we can initialize their game
+     * (4) If server denies our input (duplicate name, illegal wall placement, etc..)
+     *        we hit event ('initialize_denied')
+     */
+
+    window.onload = function() {
+        $('#gameArea').hide();
+        $('#startMenu').hide();
+
+        socket.on('ack', function() {
+            // Server is connected to us. Show the start menu and let user enter name.
+            console.log("Got ack!");
+            $('#startMenu').show();
+            $('#startButton').click(function(e) {
+                var name = $('#nameInput').val();
+                console.log("name = ", name);
+                const newInputData = {
+                    name: name
+                };
+                $('#startMenu').hide();
+                socket.emit('new_game_input', newInputData);
+            });
+        });
+
+        setupSocket()
+    };
+
+    // setupSocket(socket);
+    // setupKeyListeners(socket);
 
 
     function setupSocket(socket) {
@@ -33,25 +62,6 @@
         socket.on('removePlayer', function (name) {
             console.log("Player disconnected: " + name);
             GAME_VIEW.removePlayer(name);
-        });
-
-        /* (1) Server connected to me (hit 'ack'), get user input (name, walls, flag location, etc.)
-         * (2) Send over to server ('new_game_input')
-         * (3) If server approves, we hit ('initialize_approved'), and we can initialize their game
-         * (4) If server denies our input (duplicate name, illegal wall placement, etc..)
-         *        we hit event ('initialize_denied')
-         */
-
-        socket.on('ack', function () {
-            console.log("Got ack!");
-            var name = prompt("Please enter your name", "Harry Potter");
-            const newInputData = {
-                name: name,
-                wallLocations: null, // TODO later
-                turretLocations: null, // TODO later
-                // ..etc.
-            };
-            socket.emit('new_game_input', newInputData);
         });
 
         socket.on('initialize_approved', function (startData) {

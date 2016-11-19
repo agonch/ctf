@@ -98,6 +98,10 @@
             GAME_VIEW.setMousePosition(mouseCoords);
         });
 
+        window.addEventListener('mouseclick', function(e) {
+            socket.emit('selectWallLocation', GAME_VIEW.gridTopLeft);
+        });
+
         //onclick = function() {  socket.emit('selectWallLocation', {x: x, y: y} };
         
 

@@ -25,6 +25,7 @@ class GameView {
         this.phase = 'build';
         this.buildTool = 'wall';
         this.mouse = {x: 0, y: 0};
+        this.gridTopLeft;
 
 		this.playerName = startData.playerName;
 		this.spawnPoint = startData.spawnPoint;
@@ -35,6 +36,14 @@ class GameView {
 
         this.playerNumbers = startData.playerNumbers; // maps name to player number (ex., "Anton" --> 3, means Anton is player 3)
         
+
+
+
+        this.wallPositions = [ ];    
+
+
+
+
         this.draw();
 	}
 
@@ -46,6 +55,7 @@ class GameView {
         this._drawBuildTool();
         this._drawGridLines();
         this._drawPlayers();
+        this.drawWalls();
 	}
 
     _drawBackground() {
@@ -127,6 +137,10 @@ class GameView {
         gridX -= offsetX;
         gridY -= offsetY;
 
+        // These fields are updated so that the controller can send the top left coordinates
+        // of the grid to the server when the user clicks on a grid location
+        this.gridTopLeft = {x: gridX, y: gridY};
+
         switch (this.buildTool) {
             case 'wall':
                 this.context.fillStyle = 'gray';
@@ -207,6 +221,17 @@ class GameView {
         return {
             x: pos.x - this.origin.x,
             y: pos.y - this.origin.y
+        }
+    }
+
+    /**
+     * Wall View
+     */
+    drawWalls(context) {
+        for(var i = 0; i < this.wallPositions.length; i++) {
+            var [x, y] = this._getLocalCoords(this.wallPositions[i][0], this.wallPositions[i][1]);
+            this.context.fillStyle = 'brown';
+            this.context.fillRect(x, y, GRID_SIZE, GRID_SIZE);
         }
     }
 }

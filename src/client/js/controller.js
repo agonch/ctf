@@ -88,6 +88,27 @@
         });
     }
 
+    function setupMouseWallListener(socket) {
+        // When mouse hovers over a grid, gray it out to help client thinking about selecting it
+        // If mouse pressed, then send to server selected block (don't draw it out, server must approve
+        // and send to other users.)
+
+        // Update mouse position on canvas
+        window.addEventListener('mousemove', function (e) {
+            var mouseCoords = getMouseCoords(GAME_VIEW.getCanvasDimensions(), e);
+            GAME_VIEW.setMousePosition(mouseCoords);
+        });
+
+        //onclick = function() {  socket.emit('selectWallLocation', {x: x, y: y} };
+        
+
+
+        socket.on('updateWallLocation', function(wallLocation) {
+            // Some other teammate has selected a wall, (or could have been you after broadcasted to your team).
+            // Display it.
+        });
+    }
+
 })();
 
 function setupKeyListeners(socket) {
@@ -114,18 +135,16 @@ function setupKeyListeners(socket) {
     });
 }
 
-function setupMouseWallListener(socket) {
-    // When mouse hovers over a grid, gray it out to help client thinking about selecting it
-    // If mouse pressed, then send to server selected block (don't draw it out, server must approve
-    // and send to other users.)
-
-    /*
-     * onclick = function() {  socket.emit('selectWallLocation', {x: x, y: y} };
-     */
-
-
-    socket.on('updateWallLocation', function(wallLocation) {
-        // Some other teammate has selected a wall, (or could have been you after broadcasted to your team).
-        // Display it.
-    });
+/**
+ * Get the absolute mouse coordinates over the given canvas
+ * 
+ * @param  {Object} containing canvas top and left position and x/y scale
+ * @param  {Object} mouse event containing clientX and clientY
+ * @return {x, y} mouse position on canvas
+ */
+function getMouseCoords(canvasDimensions, e) {
+    return {
+        x: (e.clientX - canvasDimensions.left) * canvasDimensions.scaleX,
+        y: (e.clientY - canvasDimensions.top) * canvasDimensions.scaleY
+    }
 }

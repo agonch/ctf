@@ -39,17 +39,12 @@
                 const newInputData = {
                     name: name
                 };
-                $('#startMenu').hide();
                 socket.emit('new_game_input', newInputData);
             });
         });
 
-        setupSocket()
+        setupSocket(socket);
     };
-
-    // setupSocket(socket);
-    // setupKeyListeners(socket);
-
 
     function setupSocket(socket) {
 
@@ -65,6 +60,10 @@
         });
 
         socket.on('initialize_approved', function (startData) {
+            $('#startMenu').hide();
+            $('#gameArea').show();
+            setupKeyListeners(socket);
+            setupMouseWallListener(socket);
             console.log('initializing Canvas with --> ', JSON.stringify(startData, null, 4));
             GAME_VIEW.initializeCanvas(startData);
             socket.emit('client_ready');
@@ -112,5 +111,21 @@ function setupKeyListeners(socket) {
             keysPressed[key] = false;
             socket.emit('updateKeys', keysPressed);
         }
+    });
+}
+
+function setupMouseWallListener(socket) {
+    // When mouse hovers over a grid, gray it out to help client thinking about selecting it
+    // If mouse pressed, then send to server selected block (don't draw it out, server must approve
+    // and send to other users.)
+
+    /*
+     * onclick = function() {  socket.emit('selectWallLocation', {x: x, y: y} };
+     */
+
+
+    socket.on('updateWallLocation', function(wallLocation) {
+        // Some other teammate has selected a wall, (or could have been you after broadcasted to your team).
+        // Display it.
     });
 }

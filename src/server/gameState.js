@@ -1,11 +1,10 @@
-/* Game state for a single game (of 4 player) */
+/* Game state for two teams, of 4 players */
 
 // Constants
-const MAX_PLAYERS = 4;
+const MAX_PLAYERS_PER_TEAM = 4;
 
 /*
- * NOTE: player 1 is top left corner, player 2 is top right corner
- *       player 3 is bottom left and player 4 is bottom right
+ * NOTE: 2 teams, one on left side, and one on right side.
  */
 module.exports = class GameState {
 
@@ -17,14 +16,25 @@ module.exports = class GameState {
         this.playerVelocity = {};
 
         // Default values on start
+        this.defaultPlayerSize = 50;
         this.defaultBoardSize = [800, 800];
         var [b_w, b_h] = this.defaultBoardSize;
-        this.defaultSpawnPoints = {
+        this.defaultSpawnPointsTeamLeft = {
             'Player1': [b_w/4,   b_h/4],
             'Player2': [b_w*3/4, b_h/4],
             'Player3': [b_w/4,   b_h*3/4],
             'Player4': [b_w*3/4, b_h*3/4]
         };
+        this.defaultSpawnPointsTeamLeft = [
+            [this.]
+        ];
+        this.defaultSpawnPointsTeamRight = [
+            [b_w - this.defaultPlayerSize*2, b_h - this.defaultPlayerSize*2],
+            [b_w*3/4, b_h/4]
+        ];
+        for (var player_i = 1; player_i <= MAX_PLAYERS_PER_TEAM; player_i++) {
+            this.defaultSpawnPointsTeamLeft['Player' + player_i] = [b_w*3/4, b_h / 4];
+        }
         this.defaultPlayerSize = 50;
     }
 

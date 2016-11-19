@@ -5,8 +5,11 @@ const Player_Colors = {
     'Player4': 'orange'
 };
 
+const GRID_SIZE = 50;
+
 // This class exposes APIs that the controller can use to manipulate the game UI.
 class GameView {
+
 	constructor() {
 		this.players = {};
 	}
@@ -16,6 +19,13 @@ class GameView {
 		this.context = canvas.getContext("2d");
 		this.canvas.width = window.innerWidth - (window.innerWidth % 2) - 30; // 30 pixels prevents scrollbars from appearing
 		this.canvas.height = window.innerHeight - (window.innerHeight % 2) - 30;
+        this.origin = {x: 0, y: 0};
+
+        // Mouse interaction
+        this.phase = 'build';
+        this.buildTool = 'wall';
+        this.mouse = {x: 0, y: 0};
+
 		this.playerName = startData.playerName;
 		this.spawnPoint = startData.spawnPoint;
 		this.players = startData.playerPositions;
@@ -24,6 +34,7 @@ class GameView {
 		this.playerSize = startData.playerSize;
 
         this.playerNumbers = startData.playerNumbers; // maps name to player number (ex., "Anton" --> 3, means Anton is player 3)
+        
         this.draw();
 	}
 
@@ -32,6 +43,7 @@ class GameView {
         this.context.clearRect(x, y, x + this.boardSize[0], y + this.boardSize[1]);
         this._drawBackground();
         this._drawGameBoard();
+        this._drawBuildTool();
         this._drawGridLines();
         this._drawPlayers();
 	}
@@ -76,7 +88,7 @@ class GameView {
     }
 
 	_drawGridLines() {
-        for (var i = 0; i < this.boardSize[0]; i+=50) {
+        for (var i = 0; i < this.boardSize[0]; i+=GRID_SIZE) {
             var [offsetX, offsetY] = this._getLocalCoords(0, i);
             this.context.beginPath();
             this.context.moveTo(offsetX, offsetY);
@@ -84,7 +96,7 @@ class GameView {
             this.context.lineWidth = 0.25;
             this.context.stroke();
         }
-        for (var i = 0; i < this.boardSize[1]; i+=50) {
+        for (var i = 0; i < this.boardSize[1]; i+=GRID_SIZE) {
             var [offsetX, offsetY] = this._getLocalCoords(i, 0);
             this.context.beginPath();
             this.context.moveTo(offsetX, offsetY);
@@ -93,6 +105,36 @@ class GameView {
             this.context.stroke();
         }
 	}
+
+    _drawBuildTool() {
+        if (this.phase != 'build') {
+            return;
+        }
+
+        var outOfScreen = this.mouse.x < 0 || this.mouse.y < 0 ||
+            this.mouse.x > this.canvas.width || this.mouse.y > this.canvas.height;
+        if (outOfScreen) {
+            return;
+        }
+
+        // Snap mouse position to grid
+        var [left, top] = this._getLocalCoords(0, 0);
+        var local = this.getLocalCoordsFromCanvasCoords(this.mouse);
+        var offsetX = GRID_SIZE - left % GRID_SIZE;
+        var offsetY = GRID_SIZE - top % GRID_SIZE;
+        var gridX = GRID_SIZE * Math.floor((local.x + offsetX) / GRID_SIZE);
+        var gridY = GRID_SIZE * Math.floor((local.y + offsetY) / GRID_SIZE);
+        gridX -= offsetX;
+        gridY -= offsetY;
+
+        switch (this.buildTool) {
+            case 'wall':
+                this.context.fillStyle = 'gray';
+                this.context.fillRect(gridX, gridY, GRID_SIZE, GRID_SIZE);
+            default:
+                break;
+        }
+    }
 
 	removePlayer(name) {
 		delete this.players[name];
@@ -105,11 +147,19 @@ class GameView {
             var [newX, newY] = pos;
             var diffX = curX - newX;
             var diffY = curY - newY;
-            this.context.translate(diffX, diffY);
+            this.moveCamera(diffX, diffY);
         }
 		this.players[name] = pos;
         this.draw();
 	}
+
+    moveCamera(deltaX, deltaY) {
+        this.context.translate(deltaX, deltaY);
+
+        // Keep track of the total translation
+        this.origin.x += deltaX;
+        this.origin.y += deltaY;
+    }
 
     setPlayerNum(name, playerNum) {
         this.playerNumbers[name] = playerNum;
@@ -131,6 +181,33 @@ class GameView {
         var scaledY = localY / factor;
         this.context.scale(factor, factor);
         this.context.translate(- (localX - scaledX), - (localY - scaledY));
+    }
+
+    getCanvasDimensions() {
+        // Dimensions with left, top, right, bottom, x, y, width, height
+        var dimensions = this.canvas.getBoundingClientRect();
+
+        // Add scale to the object
+        dimensions.scaleX = this.canvas.width / dimensions.width;
+        dimensions.scaleY = this.canvas.height / dimensions.height;
+
+        return dimensions;
+    }
+
+    setMousePosition(pos) {
+        this.mouse.x = pos.x;
+        this.mouse.y = pos.y;
+    }
+
+    /**
+     * @param  {Object} x,y on canvas (where top-left is 0,0)
+     * @return {Object} x,y in local game world
+     */
+    getLocalCoordsFromCanvasCoords(pos) {
+        return {
+            x: pos.x - this.origin.x,
+            y: pos.y - this.origin.y
+        }
     }
 }
 

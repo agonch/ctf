@@ -5,21 +5,35 @@
 
 module.exports = class LobbyManager {
     constructor() {
-        this.allNames = new Set();
-        this.playersWaitingOnGame = []; // should be only of size 0 - 3
-                                        // (if 4, we create a new game and match them together)
+        this.games = [];
+        this.games.push(new GameState());
+        this.loadingGame = 0;
+        this.playerGame = {};
     }
 
-    addName(name) {
-        this.allNames.add(name);
+    addPlayer(id, name) {
+        this.games[this.loadingGame].addPlayer(id, name);
+        var gameState = this.games[this.loadingGame];
+        this.playerGame[id] = this.loadingGame;
+        if (this.games[this.loadingGame].isFull()) {
+            loadingGame++;
+            this.games.push(new GameState());
+        }
+        return [gameState, this.playerGame[id].toString()];
     }
 
-    deleteName(name) {
-        this.allNames.delete(name);
+    getGameState(id) {
+        return [this.games[this.playerGame[id]], this.playerGame[id].toString()];
+    }
+
+    deletePlayer(id) {
+        this.games[this.playerGame[id]].removePlayer(id);
+        delete this.playerGame[id];
     }
 
     nameAlreadyExists(name) {
-        return this.allNames.has(name);
+        return this.games[this.loadingGame].nameExists(name);
     }
+
 
 };

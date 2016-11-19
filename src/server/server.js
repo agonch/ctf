@@ -7,12 +7,8 @@ var GameState = require('./gameState.js');
 const GameLogic = require('./gameLogic.js');
 const LobbyManager = require('./lobbyManager.js');
 
-
-const gameState = new GameState();
 const lobbyManager = new LobbyManager();
-const ROOMS = {
-    initializing: 'initializing', ready: 'ready' // socket rooms
-};
+
 var GameLoopInterval = null;
 
 http.listen(3000, function() {
@@ -35,15 +31,14 @@ app.use(express.static('../client/'));
  */
 io.on('connection', function (socket) {
     console.log("New connection with " + socket.id);
-    socket.join(ROOMS.initializing);
 
     socket.emit('ack'); // let client know we ready
 
     socket.on('disconnect', function() {
+        var [gameState, gameId] = lobbyManager.getGameState(socket.id);
         console.log(gameState.getPlayerName(socket.id) + ' has disconnected from the chat.' + socket.id);
-        socket.broadcast.emit('removePlayer', gameState.getPlayerName(socket.id));
-        lobbyManager.deleteName(gameState.getPlayerName(socket.id));
-        gameState.removePlayer(socket.id);
+        io.to(gameId).emit('removePlayer', gameState.getPlayerName(socket.id));
+        lobbyManager.deletePlayer(socket.id);
     });
 
     socket.on('new_game_input', function (newInputData) {
@@ -53,12 +48,10 @@ io.on('connection', function (socket) {
             socket.emit('initialize_denied', newInputData, 'duplicate name');
             return;
         }
-        lobbyManager.addName(name);
-        gameState.addPlayer(socket.id, name);
-        socket.leave(ROOMS.initializing);
-
+        var [gameState, gameId] = lobbyManager.addPlayer(socket.id, name);
+        socket.join(gameId);
         console.log("New player: " + name, " This will be Player #", gameState.numPlayersPresent());
-        const [nameToPosition, nameToPlayerNumber] = gameState.getAllPlayers();
+        const [nameToPosition, nameToPlayerNumber] = gameState.getAllPlayers(id);
         const startData = {
             spawnPoint: gameState.getPlayerPosition(socket.id), // initially is default location for new player
             boardSize: gameState.defaultBoardSize,
@@ -69,15 +62,16 @@ io.on('connection', function (socket) {
         };
         console.log("startData ->", JSON.stringify(startData, null, 3));
         // for new player, send game start info
-        socket.emit('initialize_approved', startData);
+        io.to(gameId).emit('initialize_approved', startData);
         // for other players, (if any), send them just new player name and position
-        socket.broadcast.emit('newPlayer', name, gameState.getPlayerPosition(socket.id), gameState.numPlayersPresent());
+        io.to(gameId).emit('newPlayer', name, gameState.getPlayerPosition(socket.id), gameState.numPlayersPresent());
         if (GameLoopInterval === null)
             GameLoop();
     });
 
     socket.on('client_ready', () => {
-       socket.join(ROOMS.ready);
+        socket.join(lobbManager.getGameName(socket.id));
+       // socket.join(ROOMS.ready);
     });
 
     socket.on('updateKeys', function(keysPressed) {
@@ -90,13 +84,25 @@ io.on('connection', function (socket) {
 
 function GameLoop() {
     GameLoopInterval = setInterval(() => {
-        GameLogic.tickPlayerPositions(gameState);
+        for(var i = 0; i < lobbyManager.games.length; i++)
+        {
+            var gameState = lobbyManager.games[i];
+            GameLogic.tickPlayerPositions(gameState);
 
-        // get updated values to send to all clients (for this game)
-        const [nameToPosition, _] = gameState.getAllPlayers();
-        var names = gameState.getPlayerNames();
+            // get updated values to send to all clients (for this game)
+            const [nameToPosition, _] = gameState.getAllPlayers();
+            var names = gameState.getPlayerNames();
 
-        io.to(ROOMS.ready).emit('updatePlayerPositions', names, nameToPosition);
+            io.to(i.toString()).emit('updatePlayerPositions', names, nameToPosition);
+        }
     },
         1000 / 40 /* 40 FPS */);
 }
+
+/*
+ * 16 players
+ *
+ * 2 teams
+ *
+ * game1   game2
+ */

@@ -49,14 +49,18 @@
     function setupSocket(socket) {
 
         socket.on('newPlayer', function (name, pos, playerNum) {
-            console.log("Player joined: " + name + " this is player # ", playerNum);
-            GAME_VIEW.setPlayerNum(name, playerNum);
-            GAME_VIEW.setPlayerLocation(name, pos);
+            if (GAME_VIEW.playerName != name) {
+                console.log("Player joined: " + name + " this is player # ", playerNum);
+                GAME_VIEW.setPlayerNum(name, playerNum);
+                GAME_VIEW.setPlayerLocation(name, pos);
+            }
         });
 
         socket.on('removePlayer', function (name) {
-            console.log("Player disconnected: " + name);
-            GAME_VIEW.removePlayer(name);
+            if (GAME_VIEW.playerName != name) {
+                console.log("Player disconnected: " + name);
+                GAME_VIEW.removePlayer(name);
+            }
         });
 
         socket.on('initialize_approved', function (startData) {

@@ -70,13 +70,12 @@
         });
 
         socket.on('initialize_denied', function (prevInputData, reason) {
-            alert('Cannot initialize game because of: ' + reason);
+            console.log('Cannot initialize game because of: ' + reason);
             if (reason === 'duplicate name') {
-                prevInputData.name = prompt("Please enter another name, this one already exists");
+                $('#nameInputError').text('Cannot use this name \'' + prevInputData.name + '\', it is already taken.');
             } else {
                 // TODO
             }
-            socket.emit('new_game_input', prevInputData); // try again
         });
 
         socket.on('updatePlayerPositions', function (names, nameToPosition) {

@@ -1,7 +1,12 @@
 /* Game state for two teams, of 4 players */
 
-// Constants
-const MAX_PLAYERS_PER_TEAM = 4;
+// Constants (these values can change later if desired)
+const MaxPlayersPerTeam = 4;
+const GameBlockSize = 50; // in pixels
+
+// # of grid blocks for width and height
+const GridBlockWidth = 20;
+const GridBlockHeight = 10;
 
 /*
  * NOTE: 2 teams, one on left side, and one on right side.
@@ -10,50 +15,53 @@ module.exports = class GameState {
 
     constructor() {
         // Player values
-        this.playerPositions = {};
+        this.playerPositions = {/* id --> [x,y] pixel locations */};
         this.playerNames = {/* id --> name */};
-        this.playerNums = {/* id --> player # */}; // used to determine what sector of map to place them in
+        this.teamToPlayers = {
+            'TeamLeft': new Set() /*stores id's*/,
+            'TeamRight': new Set()
+        };
         this.playerVelocity = {};
 
-        // Default values on start
-        this.defaultPlayerSize = 50;
-        this.defaultBoardSize = [800, 800];
-        var [b_w, b_h] = this.defaultBoardSize;
-        this.defaultSpawnPointsTeamLeft = {
-            'Player1': [b_w/4,   b_h/4],
-            'Player2': [b_w*3/4, b_h/4],
-            'Player3': [b_w/4,   b_h*3/4],
-            'Player4': [b_w*3/4, b_h*3/4]
+        this.boardBlockSize = [GridBlockWidth * GameBlockSize, GridBlockHeight * GameBlockSize];
+        var [b_w, b_h] = this.boardBlockSize;
+        this.defaultSpawnPoints = {
+            // spawn points are top/bottom corners
+            'TeamLeft':  [[GameBlockSize, GameBlockSize], [GameBlockSize, b_h - GameBlockSize]],
+            'TeamRight': [[b_w - GameBlockSize, GameBlockSize], [b_w - GameBlockSize, b_h - GameBlockSize]]
         };
-        this.defaultSpawnPointsTeamLeft = [
-            [this.]
-        ];
-        this.defaultSpawnPointsTeamRight = [
-            [b_w - this.defaultPlayerSize*2, b_h - this.defaultPlayerSize*2],
-            [b_w*3/4, b_h/4]
-        ];
-        for (var player_i = 1; player_i <= MAX_PLAYERS_PER_TEAM; player_i++) {
-            this.defaultSpawnPointsTeamLeft['Player' + player_i] = [b_w*3/4, b_h / 4];
-        }
-        this.defaultPlayerSize = 50;
+    }
+
+    isFull() {
+        return this.numPlayersPresent() < MaxPlayersPerTeam*2;
+    }
+
+    getPlayerNames() {
+        return getValues(this.playerNames);
+    }
+
+    nameExists(name) {
+        return this.getPlayerNames().indexOf(name) >= 0;
     }
 
     numPlayersPresent() {
-        return Object.keys(this.playerNums).length;
+        return this.teamToPlayers['TeamLeft'].size + this.teamToPlayers['TeamRight'].size;
     }
 
     addPlayer(id, name) {
-        if (this.numPlayersPresent() >= MAX_PLAYERS) {
-            // throw new Error("Can't have more than %d players.", MAX_PLAYERS); TODO ignore for now
-                    // to allow more players
+        const numLeft = this.teamToPlayers['TeamLeft'].size;
+        const numRight = this.teamToPlayers['TeamRight'].size;
+        if ((numLeft + numRight) >= MaxPlayersPerTeam * 2) {
+            throw new Error("Can't have more than %d players per game.", MaxPlayersPerTeam * 2);
         }
-        var playerNum = this.numPlayersPresent() + 1;
-        // TODO remove next loop to restric to only 4 players
-        while (playerNum > 4) {
-            playerNum -= 4;
+        var team = 'TeamRight';
+        if (numLeft < MaxPlayersPerTeam && numLeft < numRight) {
+            team = 'TeamLeft';
         }
-        this.playerNums[id] = playerNum;
-        this.playerPositions[id] = this.defaultSpawnPoints["Player" + this.playerNums[id]];
+
+        this.teamToPlayers[team].add(id);
+        const numSpawnPoints = this.defaultSpawnPoints[team].length;
+        this.playerPositions[id] = this.defaultSpawnPoints[team][numLeft % numSpawnPoints];
         this.playerNames[id] = name;
         this.playerVelocity[id] = [0, 0];
     }
@@ -61,8 +69,13 @@ module.exports = class GameState {
     removePlayer(id) {
         delete this.playerPositions[id];
         delete this.playerNames[id];
-        delete this.playerNums[id];
         delete this.playerVelocity[id];
+        // remove name from correct team
+        if (this.teamToPlayers['TeamLeft'].has(id)) {
+            this.teamToPlayers['TeamLeft'].delete(id);
+        } else {
+            this.teamToPlayers['TeamRight'].delete(id);
+        }
     }
 
     updatePlayerPosition(id, pos) {
@@ -71,14 +84,14 @@ module.exports = class GameState {
 
         if(pos[0] < 0) {
             x = 0;
-        } else if(pos[0] > this.defaultBoardSize[0]) {
-            x = this.defaultBoardSize[0];
+        } else if(pos[0] > this.boardBlockSize[0]) {
+            x = this.boardBlockSize[0];
         }
 
         if(pos[1] < 0) {
             y = 0;
-        } else if(pos[1] > this.defaultBoardSize[1]) {
-            y = this.defaultBoardSize[1];
+        } else if(pos[1] > this.boardBlockSize[1]) {
+            y = this.boardBlockSize[1];
         }
 
         this.playerPositions[id] = [x, y];
@@ -88,23 +101,28 @@ module.exports = class GameState {
         return this.playerPositions[id];
     }
 
-    getPlayerNames() {
-        return getValues(this.playerNames);
-    }
-
     getPlayerName(id) {
         return this.playerNames[id];
     }
 
+    /*
+     * Return [ nameToPixelLocations, nameToTeam ]
+     */
     getAllPlayers() {
         var nameToPos = {};
-        var nameToPlayerNum = {};
-        Object.keys(this.playerPositions).forEach(id => {
+        var nameToTeam = {};
+        const ids = Object.keys(this.playerPositions);
+        for (var i = 0; i < ids.length; i++) {
+            var id = ids[0];
             var name = this.playerNames[id];
             nameToPos[name] = this.playerPositions[id];
-            nameToPlayerNum[name] = this.playerNums[id];
-        });
-        return [nameToPos, nameToPlayerNum];
+            if (this.teamToPlayers['TeamLeft'].has(id)) {
+                nameToTeam[name] = 'TeamLeft';
+            } else {
+                nameToTeam[name] = 'TeamRight';
+            }
+        }
+        return [nameToPos, nameToTeam];
     }
 
 };

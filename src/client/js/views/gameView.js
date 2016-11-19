@@ -22,6 +22,7 @@ class GameView {
 		this.players[startData.playerName] = startData.spawnPoint;
 		this.boardSize = startData.boardSize;
 		this.playerSize = startData.playerSize;
+
         this.playerNumbers = startData.playerNumbers; // maps name to player number (ex., "Anton" --> 3, means Anton is player 3)
         this.draw();
 	}
@@ -119,8 +120,17 @@ class GameView {
         var cornerX = playerX - this.canvas.width / 2;
         var cornerY = playerY - this.canvas.height / 2;
         var offsetX = x - cornerX;
-        var offsetY = y - cornerY;
+        var offsetY = y - cornerY; 
         return [offsetX, offsetY];
+    }
+
+    zoom(factor) {
+        var localX = this.canvas.width / 2;
+        var localY = this.canvas.height / 2;
+        var scaledX = localX / factor;
+        var scaledY = localY / factor;
+        this.context.scale(factor, factor);
+        this.context.translate(- (localX - scaledX), - (localY - scaledY));
     }
 }
 

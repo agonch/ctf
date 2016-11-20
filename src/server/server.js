@@ -51,14 +51,14 @@ io.on('connection', function (socket) {
         var [gameState, gameId] = lobbyManager.addPlayer(socket.id, name);
         socket.join(gameId);
         console.log("New player: " + name, " This will be Player #", gameState.numPlayersPresent());
-        const [nameToPosition, nameToPlayerNumber] = gameState.getAllPlayers();
+        const [namesToPositions, namesToTeam] = gameState.getAllPlayers();
         const startData = {
             spawnPoint: gameState.getPlayerPosition(socket.id), // initially is default location for new player
-            boardSize: gameState.defaultBoardSize,
-            playerSize: gameState.defaultPlayerSize,
-            playerPositions: nameToPosition,
+            boardSize: gameState.boardSize,
+            playerSize: gameState.gameBlockSize,
+            playerPositions: namesToPositions,
             playerName: name,
-            playerNumbers: nameToPlayerNumber
+            namesToTeams: namesToTeam
         };
         console.log("startData ->", JSON.stringify(startData, null, 3));
         // for new player, send game start info

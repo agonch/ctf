@@ -23,8 +23,9 @@ module.exports = class GameState {
         };
         this.playerVelocity = {};
 
-        this.boardBlockSize = [GridBlockWidth * GameBlockSize, GridBlockHeight * GameBlockSize];
-        var [b_w, b_h] = this.boardBlockSize;
+        this.gameBlockSize = GameBlockSize;
+        this.boardSize = [GridBlockWidth * GameBlockSize, GridBlockHeight * GameBlockSize];
+        var [b_w, b_h] = this.boardSize;
         this.defaultSpawnPoints = {
             // spawn points are top/bottom corners
             'TeamLeft':  [[GameBlockSize, GameBlockSize], [GameBlockSize, b_h - GameBlockSize]],
@@ -84,14 +85,14 @@ module.exports = class GameState {
 
         if(pos[0] < 0) {
             x = 0;
-        } else if(pos[0] > this.boardBlockSize[0]) {
-            x = this.boardBlockSize[0];
+        } else if(pos[0] > this.boardSize[0]) {
+            x = this.boardSize[0];
         }
 
         if(pos[1] < 0) {
             y = 0;
-        } else if(pos[1] > this.boardBlockSize[1]) {
-            y = this.boardBlockSize[1];
+        } else if(pos[1] > this.boardSize[1]) {
+            y = this.boardSize[1];
         }
 
         this.playerPositions[id] = [x, y];

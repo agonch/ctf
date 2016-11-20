@@ -1,8 +1,6 @@
 const Player_Colors = {
-    'Player1': 'red',
-    'Player2': 'green',
-    'Player3': 'blue',
-    'Player4': 'orange'
+    'TeamLeft': 'red',
+    'TeamRight': 'blue'
 };
 
 const GRID_SIZE = 50;
@@ -13,6 +11,15 @@ class GameView {
 	constructor() {
 		this.players = {};
 	}
+
+	/*
+     spawnPoint: gameState.getPlayerPosition(socket.id), // initially is default location for new player
+     boardSize: gameState.boardSize,
+     playerSize: gameState.gameBlockSize,
+     playerPositions: namesToPositions,
+     playerName: name,
+     namesToTeams
+	 */
 
 	initializeCanvas(startData) {
 		this.canvas = document.getElementById("canvas");
@@ -34,15 +41,8 @@ class GameView {
 		this.boardSize = startData.boardSize;
 		this.playerSize = startData.playerSize;
 
-        this.playerNumbers = startData.playerNumbers; // maps name to player number (ex., "Anton" --> 3, means Anton is player 3)
-        
-
-
-
-        this.wallPositions = [ ];    
-
-
-
+        this.namesToTeams = startData.namesToTeams; // (ex., "Anton" --> "TeamLeft")
+        this.wallPositions = [ ];
 
         this.draw();
 	}
@@ -50,7 +50,7 @@ class GameView {
 	draw() {
         var [x, y] = this._getLocalCoords(0, 0);
         this.context.clearRect(x, y, x + this.boardSize[0], y + this.boardSize[1]);
-        this._drawBackground();
+        // this._drawBackground();
         this._drawGameBoard();
         this._drawBuildTool();
         this._drawGridLines();
@@ -79,8 +79,8 @@ class GameView {
             var pos = this.players[name];
             var [x, y] = this._getLocalCoords(pos[0], pos[1]);
             this.context.arc(x, y, this.playerSize, 0, 2 * Math.PI);
-            var playerNum = this.playerNumbers[name];
-            this.context.fillStyle = Player_Colors["Player" + playerNum];
+            var team = this.namesToTeams[name];
+            this.context.fillStyle = Player_Colors[team];
             this.context.fill();
             this.context.stroke();
             this._drawNameAbovePlayer(name);

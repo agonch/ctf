@@ -1,7 +1,7 @@
 /* Game state for two teams, of 4 players */
 
 // Constants (these values can change later if desired)
-const MaxPlayersPerTeam = 4;
+const MaxPlayersPerTeam = 2;
 const GameBlockSize = 50; // in pixels
 
 // # of grid blocks for width and height
@@ -47,6 +47,14 @@ module.exports = class GameState {
 
     numPlayersPresent() {
         return this.teamToPlayers['TeamLeft'].size + this.teamToPlayers['TeamRight'].size;
+    }
+
+    getTeam(id){
+        if (this.teamToPlayers['TeamLeft'].has(this.playerNames[id])) {
+            return 'TeamLeft';
+        }
+        return 'TeamRight';
+
     }
 
     addPlayer(id, name) {

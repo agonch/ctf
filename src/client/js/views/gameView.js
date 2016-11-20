@@ -61,7 +61,7 @@ class GameView {
     _drawBackground() {
         var [x, y] = this._getLocalCoords(-this.canvas.width, -this.canvas.height);
         this.context.fillStyle = 'blue';
-        this.context.fillRect(x, y, this.boardSize[0] + this.canvas.width * 2, 
+        this.context.fillRect(0, 0, this.boardSize[0] + this.canvas.width * 2, 
             this.boardSize[1] + this.canvas.height * 2);
     }
 
@@ -129,17 +129,20 @@ class GameView {
 
         // Snap mouse position to grid
         var [left, top] = this._getLocalCoords(0, 0);
-        var local = this.getLocalCoordsFromCanvasCoords(this.mouse);
+        var relative = this.getRelativeCoordsFromCanvasCoords(this.mouse);
         var offsetX = GRID_SIZE - left % GRID_SIZE;
         var offsetY = GRID_SIZE - top % GRID_SIZE;
-        var gridX = GRID_SIZE * Math.floor((local.x + offsetX) / GRID_SIZE);
-        var gridY = GRID_SIZE * Math.floor((local.y + offsetY) / GRID_SIZE);
+        var gridX = GRID_SIZE * Math.floor((relative.x + offsetX) / GRID_SIZE);
+        var gridY = GRID_SIZE * Math.floor((relative.y + offsetY) / GRID_SIZE);
+
         gridX -= offsetX;
         gridY -= offsetY;
-
         // These fields are updated so that the controller can send the top left coordinates
         // of the grid to the server when the user clicks on a grid location
-        this.gridTopLeft = {x: gridX, y: gridY};
+        
+        var localGridX = GRID_SIZE * Math.floor((relative.x - left) / GRID_SIZE);
+        var localGridY = GRID_SIZE * Math.floor((relative.y - top) / GRID_SIZE);
+        this.gridTopLeft = {x: localGridX, y: localGridY};
 
         switch (this.buildTool) {
             case 'wall':
@@ -217,7 +220,7 @@ class GameView {
      * @param  {Object} x,y on canvas (where top-left is 0,0)
      * @return {Object} x,y in local game world
      */
-    getLocalCoordsFromCanvasCoords(pos) {
+    getRelativeCoordsFromCanvasCoords(pos) {
         return {
             x: pos.x - this.origin.x,
             y: pos.y - this.origin.y
@@ -233,6 +236,11 @@ class GameView {
             this.context.fillStyle = 'brown';
             this.context.fillRect(x, y, GRID_SIZE, GRID_SIZE);
         }
+    }
+
+    updateWallPositions(wallPositions) {
+        this.wallPositions = wallPositions;
+        this.draw();
     }
 }
 

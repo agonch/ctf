@@ -98,17 +98,14 @@
             GAME_VIEW.setMousePosition(mouseCoords);
         });
 
-        window.addEventListener('mouseclick', function(e) {
+        window.addEventListener('click', function(e) {
             socket.emit('selectWallLocation', GAME_VIEW.gridTopLeft);
         });
-
-        //onclick = function() {  socket.emit('selectWallLocation', {x: x, y: y} };
         
-
-
-        socket.on('updateWallLocation', function(wallLocation) {
+        socket.on('updateWallLocation', function(wallLocations) {
             // Some other teammate has selected a wall, (or could have been you after broadcasted to your team).
             // Display it.
+            GAME_VIEW.updateWallPositions( wallLocations );
         });
     }
 

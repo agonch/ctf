@@ -13,7 +13,9 @@
     const GAME_VIEW = new GameView();
 
     window.onresize = function (event) {
-        GAME_VIEW.draw();
+        if (GAME_VIEW.initialized) {
+            GAME_VIEW.draw();
+        }
     };
 
     console.log("Connecting!");
@@ -48,10 +50,12 @@
 
     function setupSocket(socket) {
 
-        socket.on('newPlayer', function (name, pos, playerNum) {
+        socket.on('newPlayer', function (name, pos, team) {
+            console.log("Called: " + name);
             if (GAME_VIEW.playerName != name) {
-                console.log("Player joined: " + name + " this is player # ", playerNum);
-                GAME_VIEW.setPlayerNum(name, playerNum);
+                console.log("Player joined: " + name + " this is player on team ", team);
+                GAME_VIEW.setPlayerTeam(name, team);
+                console.log("POSITION: " + pos);
                 GAME_VIEW.setPlayerLocation(name, pos);
             }
         });

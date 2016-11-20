@@ -49,32 +49,34 @@ io.on('connection', function (socket) {
             return;
         }
         var [gameState, gameId] = lobbyManager.addPlayer(socket.id, name);
-        socket.join(gameId);
         console.log("New player: " + name, " This will be Player #", gameState.numPlayersPresent());
         const [namesToPositions, namesToTeam] = gameState.getAllPlayers();
         const startData = {
             spawnPoint: gameState.getPlayerPosition(socket.id), // initially is default location for new player
             boardSize: gameState.boardSize,
-            playerSize: gameState.gameBlockSize,
+            gridSize: gameState.gameBlockSize,
             playerPositions: namesToPositions,
             playerName: name,
             namesToTeams: namesToTeam
         };
         console.log("startData ->", JSON.stringify(startData, null, 3));
         // for new player, send game start info
-        io.to(gameId).emit('initialize_approved', startData);
+        socket.emit('initialize_approved', startData);
+
         // for other players, (if any), send them just new player name and position
-        io.to(gameId).emit('newPlayer', name, gameState.getPlayerPosition(socket.id), gameState.numPlayersPresent());
+        console.log("gameId: " + gameId);
+        io.to(gameId).emit('newPlayer', name, gameState.getPlayerPosition(socket.id), 'TeamLeft');
+    });
+
+    socket.on('client_ready', () => {
+        var [gameState, gameId] = lobbyManager.getGameState(socket.id);
+        socket.join(gameId);
         if (GameLoopInterval === null)
             GameLoop();
     });
 
-    socket.on('client_ready', () => {
-        socket.join(lobbManager.getGameName(socket.id));
-       // socket.join(ROOMS.ready);
-    });
-
     socket.on('updateKeys', function(keysPressed) {
+        var [gameState, gameId] = lobbyManager.getGameState(socket.id);
         var [vel_x, vel_y] = gameState.playerVelocity[socket.id];
         var newVelocities = GameLogic.calculateVelocities(vel_x, vel_y, keysPressed);
         gameState.playerVelocity[socket.id] = newVelocities;
@@ -91,8 +93,8 @@ function GameLoop() {
 
             // get updated values to send to all clients (for this game)
             const [nameToPosition, _] = gameState.getAllPlayers();
+            console.log(JSON.stringify(nameToPosition));
             var names = gameState.getPlayerNames();
-
             io.to(i.toString()).emit('updatePlayerPositions', names, nameToPosition);
         }
     },

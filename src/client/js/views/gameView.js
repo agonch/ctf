@@ -3,7 +3,7 @@ const Player_Colors = {
     'TeamRight': 'blue'
 };
 
-const GRID_SIZE = 50;
+var GRID_SIZE = 50;
 
 // This class exposes APIs that the controller can use to manipulate the game UI.
 class GameView {
@@ -12,51 +12,47 @@ class GameView {
 		this.players = {};
 	}
 
-	/*
-     spawnPoint: gameState.getPlayerPosition(socket.id), // initially is default location for new player
-     boardSize: gameState.boardSize,
-     playerSize: gameState.gameBlockSize,
-     playerPositions: namesToPositions,
-     playerName: name,
-     namesToTeams
-	 */
-
 	initializeCanvas(startData) {
+	    console.log("Initializing...");
 		this.canvas = document.getElementById("canvas");
 		this.context = canvas.getContext("2d");
+
 		this.canvas.width = window.innerWidth - (window.innerWidth % 2) - 30; // 30 pixels prevents scrollbars from appearing
 		this.canvas.height = window.innerHeight - (window.innerHeight % 2) - 30;
-        this.origin = {x: 0, y: 0};
+		this.origin = {x: 0, y: 0};
 
-        // Mouse interaction
-        this.phase = 'build';
-        this.buildTool = 'wall';
-        this.mouse = {x: 0, y: 0};
-        this.gridTopLeft;
-
+		// Mouse interaction
+		this.phase = 'build';
+		this.buildTool = 'wall';
+		this.mouse = {x: 0, y: 0};
+		this.gridTopLeft;
 		this.playerName = startData.playerName;
 		this.spawnPoint = startData.spawnPoint;
 		this.players = startData.playerPositions;
 		this.players[startData.playerName] = startData.spawnPoint;
 		this.boardSize = startData.boardSize;
-		this.playerSize = startData.playerSize;
-
-        this.namesToTeams = startData.namesToTeams; // (ex., "Anton" --> "TeamLeft")
-        this.wallPositions = [ ];
-
-        this.draw();
+        GRID_SIZE = startData.gridSize;
+		this.namesToTeams = startData.namesToTeams; // (ex., "Anton" --> "TeamLeft")
+		this.wallPositions = [ ];
+        this.initialized = true;
+		this.draw();
 	}
 
 	draw() {
-        var [x, y] = this._getLocalCoords(0, 0);
-        this.context.clearRect(x, y, x + this.boardSize[0], y + this.boardSize[1]);
-        // this._drawBackground();
-        this._drawGameBoard();
-        this._drawBuildTool();
-        this._drawGridLines();
-        this._drawPlayers();
-        this.drawWalls();
+		this._clearCanvas();
+        //this._drawBackground();
+		this._drawGameBoard();
+		this._drawBuildTool();
+		this._drawGridLines();
+		this._drawPlayers();
+		this.drawWalls();
 	}
+
+    _clearCanvas() {
+        var [x, y] = this._getLocalCoords(-this.canvas.width, -this.canvas.height);
+        this.context.clearRect(x, y, this.boardSize[0] + this.canvas.width * 2,
+            this.boardSize[1] + this.canvas.height * 2);
+    }
 
     _drawBackground() {
         var [x, y] = this._getLocalCoords(-this.canvas.width, -this.canvas.height);
@@ -73,12 +69,13 @@ class GameView {
 
 	_drawPlayers() {
 		for (var name in this.players) {
+		    console.log(name);
             if(!this.players.hasOwnProperty(name))
                 continue;
             this.context.beginPath();
             var pos = this.players[name];
             var [x, y] = this._getLocalCoords(pos[0], pos[1]);
-            this.context.arc(x, y, this.playerSize, 0, 2 * Math.PI);
+            this.context.arc(x, y, GRID_SIZE / 2, 0, 2 * Math.PI);
             var team = this.namesToTeams[name];
             this.context.fillStyle = Player_Colors[team];
             this.context.fill();
@@ -93,24 +90,25 @@ class GameView {
         this.context.font = "20px serif";
         // this.context.fillStyle = Player_Colors["Player" + playerNum];
         var pos = this.players[name];
-        var [x, y] = this._getLocalCoords(pos[0]- this.playerSize, pos[1] - this.playerSize - paddingTop);
+        var [x, y] = this._getLocalCoords(pos[0]- GRID_SIZE, pos[1] - GRID_SIZE - paddingTop);
         this.context.fillText(name, x, y);
     }
 
 	_drawGridLines() {
-        for (var i = 0; i < this.boardSize[0]; i+=GRID_SIZE) {
-            var [offsetX, offsetY] = this._getLocalCoords(0, i);
-            this.context.beginPath();
-            this.context.moveTo(offsetX, offsetY);
-            this.context.lineTo(offsetX + this.boardSize[0], offsetY);
-            this.context.lineWidth = 0.25;
-            this.context.stroke();
-        }
-        for (var i = 0; i < this.boardSize[1]; i+=GRID_SIZE) {
+
+        for (var i = 0; i <= this.boardSize[0]; i+=GRID_SIZE) {
             var [offsetX, offsetY] = this._getLocalCoords(i, 0);
             this.context.beginPath();
             this.context.moveTo(offsetX, offsetY);
             this.context.lineTo(offsetX, offsetY + this.boardSize[1]);
+            this.context.lineWidth = 0.50;
+            this.context.stroke();
+        }
+        for (var i = 0; i <= this.boardSize[1]; i+=GRID_SIZE) {
+            var [offsetX, offsetY] = this._getLocalCoords(0, i);
+            this.context.beginPath();
+            this.context.moveTo(offsetX, offsetY);
+            this.context.lineTo(offsetX + this.boardSize[0], offsetY);
             this.context.lineWidth = 0.25;
             this.context.stroke();
         }
@@ -163,6 +161,7 @@ class GameView {
             var diffY = curY - newY;
             this.moveCamera(diffX, diffY);
         }
+
 		this.players[name] = pos;
         this.draw();
 	}
@@ -175,8 +174,8 @@ class GameView {
         this.origin.y += deltaY;
     }
 
-    setPlayerNum(name, playerNum) {
-        this.playerNumbers[name] = playerNum;
+    setPlayerTeam(name, team) {
+        this.namesToTeams[name] = team;
     }
 
     _getLocalCoords(x, y) {

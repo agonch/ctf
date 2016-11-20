@@ -34,7 +34,7 @@ module.exports = class GameState {
     }
 
     isFull() {
-        return this.numPlayersPresent() < MaxPlayersPerTeam*2;
+        return this.numPlayersPresent() >= MaxPlayersPerTeam*2;
     }
 
     getPlayerNames() {

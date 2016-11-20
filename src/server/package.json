@@ -6,26 +6,22 @@
     {
       "name": "Ishan Ranade",
       "email": null,
-      "url": "https://github.com/IshanRanade",
-      "contributions": 17
+      "url": "https://github.com/IshanRanade"
     },
     {
       "name": "Anton Goncharenko",
       "email": "agonch@uw.edu",
-      "url": "https://github.com/agonch",
-      "contributions": 11
+      "url": "https://github.com/agonch"
     },
     {
       "name": "Payton Quinn",
       "email": "paytonq@cs.uw.edu",
-      "url": "https://github.com/paytonq",
-      "contributions": 12
+      "url": "https://github.com/paytonq"
     },
     {
       "name": "Brice Lwo",
       "email": null,
-      "url": "https://github.com/bricelwo",
-      "contributions": 4
+      "url": "https://github.com/bricelwo"
     }
   ],
   "main": "server.js",

@@ -16,6 +16,7 @@ class GameView {
 	    console.log("Initializing...");
 		this.canvas = document.getElementById("canvas");
 		this.context = canvas.getContext("2d");
+        const {spawnPoint, boardSize, gridSize, playerPositions, playerName, namesToTeams} = startData;
 
 		this.canvas.width = window.innerWidth - (window.innerWidth % 2) - 30; // 30 pixels prevents scrollbars from appearing
 		this.canvas.height = window.innerHeight - (window.innerHeight % 2) - 30;
@@ -26,13 +27,13 @@ class GameView {
 		this.buildTool = 'wall';
 		this.mouse = {x: 0, y: 0};
 		this.gridTopLeft;
-		this.playerName = startData.playerName;
-		this.spawnPoint = startData.spawnPoint;
-		this.players = startData.playerPositions;
-		this.players[startData.playerName] = startData.spawnPoint;
-		this.boardSize = startData.boardSize;
-        GRID_SIZE = startData.gridSize;
-		this.namesToTeams = startData.namesToTeams; // (ex., "Anton" --> "TeamLeft")
+		this.playerName = playerName;
+		this.spawnPoint = spawnPoint;
+		this.players = playerPositions;
+		this.players[playerName] = spawnPoint;
+		this.boardSize = boardSize;
+        GRID_SIZE = gridSize;
+		this.namesToTeams = namesToTeams; // (ex., "Anton" --> "TeamLeft")
 		this.wallPositions = [ ];
         this.initialized = true;
 		this.draw();
@@ -69,7 +70,6 @@ class GameView {
 
 	_drawPlayers() {
 		for (var name in this.players) {
-		    console.log(name);
             if(!this.players.hasOwnProperty(name))
                 continue;
             this.context.beginPath();

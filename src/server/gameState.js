@@ -49,14 +49,6 @@ module.exports = class GameState {
         return this.teamToPlayers['TeamLeft'].size + this.teamToPlayers['TeamRight'].size;
     }
 
-    getTeam(id){
-        if (this.teamToPlayers['TeamLeft'].has(this.playerNames[id])) {
-            return 'TeamLeft';
-        }
-        return 'TeamRight';
-
-    }
-
     addPlayer(id, name) {
         console.log("addPlayer: " + id + ", " + name);
         const numLeft = this.teamToPlayers['TeamLeft'].size;

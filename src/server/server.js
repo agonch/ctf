@@ -12,7 +12,7 @@ const lobbyManager = new LobbyManager();
 var GameLoopInterval = null;
 
 http.listen(3000, function() {
-    console.log('listening on *:3000');
+    console.log('listening on :3000');
 });
 
 app.get('/', function (req, res) {
@@ -64,8 +64,7 @@ io.on('connection', function (socket) {
         socket.emit('initialize_approved', startData);
 
         // for other players, (if any), send them just new player name and position
-        console.log("gameId: " + gameId);
-        io.to(gameId).emit('newPlayer', name, gameState.getPlayerPosition(socket.id), 'TeamLeft');
+        io.to(gameId).emit('newPlayer', name, gameState.getPlayerPosition(socket.id), namesToTeam[name]);
     });
 
     socket.on('client_ready', () => {
@@ -93,7 +92,6 @@ function GameLoop() {
 
             // get updated values to send to all clients (for this game)
             const [nameToPosition, _] = gameState.getAllPlayers();
-            console.log(JSON.stringify(nameToPosition));
             var names = gameState.getPlayerNames();
             io.to(i.toString()).emit('updatePlayerPositions', names, nameToPosition);
         }
@@ -101,10 +99,3 @@ function GameLoop() {
         1000 / 40 /* 40 FPS */);
 }
 
-/*
- * 16 players
- *
- * 2 teams
- *
- * game1   game2
- */

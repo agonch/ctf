@@ -1,6 +1,7 @@
 # GridBase   
 
-#### Installation    
+#### Installation  
+cd src/server/   
 npm install    
 
 

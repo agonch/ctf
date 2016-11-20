@@ -50,6 +50,7 @@ module.exports = class GameState {
     }
 
     addPlayer(id, name) {
+        console.log("addPlayer: " + id + ", " + name);
         const numLeft = this.teamToPlayers['TeamLeft'].size;
         const numRight = this.teamToPlayers['TeamRight'].size;
         if ((numLeft + numRight) >= MaxPlayersPerTeam * 2) {
@@ -63,11 +64,13 @@ module.exports = class GameState {
         this.teamToPlayers[team].add(id);
         const numSpawnPoints = this.defaultSpawnPoints[team].length;
         this.playerPositions[id] = this.defaultSpawnPoints[team][numLeft % numSpawnPoints];
+        console.log("addPlayer: " + this.playerPositions[id]);
         this.playerNames[id] = name;
         this.playerVelocity[id] = [0, 0];
     }
 
     removePlayer(id) {
+        console.log("removePlayer");
         delete this.playerPositions[id];
         delete this.playerNames[id];
         delete this.playerVelocity[id];
@@ -114,7 +117,7 @@ module.exports = class GameState {
         var nameToTeam = {};
         const ids = Object.keys(this.playerPositions);
         for (var i = 0; i < ids.length; i++) {
-            var id = ids[0];
+            var id = ids[i];
             var name = this.playerNames[id];
             nameToPos[name] = this.playerPositions[id];
             if (this.teamToPlayers['TeamLeft'].has(id)) {

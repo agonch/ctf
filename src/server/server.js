@@ -49,7 +49,8 @@ io.on('connection', function (socket) {
             return;
         }
         var [gameState, gameId] = lobbyManager.addPlayer(socket.id, name);
-        console.log("New player: " + name, " This will be Player #", gameState.numPlayersPresent());
+        console.log('new player ', name);
+
         const [namesToPositions, namesToTeam] = gameState.getAllPlayers();
         const startData = {
             spawnPoint: gameState.getPlayerPosition(socket.id), // initially is default location for new player
@@ -57,9 +58,9 @@ io.on('connection', function (socket) {
             gridSize: gameState.gameBlockSize,
             playerPositions: namesToPositions,
             playerName: name,
-            namesToTeams: namesToTeam
+            namesToTeams: namesToTeam,
+            wallPositions: gameState.getAllWalls()
         };
-        console.log("startData ->", JSON.stringify(startData, null, 3));
         // for new player, send game start info
         socket.emit('initialize_approved', startData);
 
@@ -81,9 +82,39 @@ io.on('connection', function (socket) {
         gameState.playerVelocity[socket.id] = newVelocities;
     });
 
-    socket.on('selectWallLocation', wallLocations => {
-        console.log(wallLocations);
-        
+    socket.on('selectWallLocation', (wall, action) => {
+        var [gameState, gameId] = lobbyManager.getGameState(socket.id);
+        wall = [wall.x, wall.y];
+        var vetoCount;
+        var team;
+
+        if (action === 'select') {
+            gameState.addWall(wall, socket.id);
+            vetoCount = gameState.selectedWalls[wall].vetoCount;
+            team = gameState.getPlayerTeam(socket.id);
+        } else if (action === 'veto') {
+            if (wall in gameState.selectedWalls) {
+                var gotDeleted = gameState.incrementVetoCount(wall, socket.id);
+                if (gotDeleted) {
+                    vetoCount = -1;
+                } else {
+                    vetoCount = gameState.selectedWalls[wall].vetoCount;
+                    team = gameState.getPlayerTeam(socket.id);
+                }
+            } else {
+                return; // user touching wall of different team
+            }
+        }
+
+        console.log('gameState.selectedWalls = ', gameState.selectedWalls);
+
+        io.to(gameId).emit('updateWall', {
+            x: wall[0],
+            y: wall[1],
+            vetoCount: vetoCount,
+            team: team,
+            deleted: vetoCount === -1
+        });
     });
 });
 

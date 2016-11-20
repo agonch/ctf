@@ -22,6 +22,7 @@ module.exports = class GameState {
             'TeamRight': new Set()
         };
         this.playerVelocity = {};
+        this.selectedWalls = {};
 
         this.gameBlockSize = GameBlockSize;
         this.boardSize = [GridBlockWidth * GameBlockSize, GridBlockHeight * GameBlockSize];
@@ -33,12 +34,87 @@ module.exports = class GameState {
         };
     }
 
+    // Adds wall to the team team (or decrements the veto count).
+    addWall(wall, id) {
+        if (!(wall in this.selectedWalls)) {
+            this.selectedWalls[wall] = {
+                vetoCount: 0,
+                team: this.getPlayerTeam(id), // what team this wall is in
+                ids_who_vetoed: new Set()  // to prevent users from vetoing twice
+            };
+            console.log('added wall: ', wall);
+        } else {
+            // wall already exists
+            // decrease veto count (left clicking on grid decreases its veto count - basically, lets you undo your veto)
+            var count = this.selectedWalls[wall].vetoCount;
+            if (this.selectedWalls[wall].ids_who_vetoed.has(id)) {
+                this.selectedWalls[wall].ids_who_vetoed.delete(id);
+                this.selectedWalls[wall].vetoCount = Math.max(0, count - 1);
+                console.log('set wall veto count to  ', this.selectedWalls[wall].vetoCount);
+            }
+        }
+    }
+
+    // Increment the walls veto count. If veto count >= majority vote, delete it.
+    // Return true if wall got deleted
+    incrementVetoCount(wall, id) {
+        if (!(wall in this.selectedWalls)) {
+            return false;
+        }
+        var team = this.selectedWalls[wall].team;
+        var numPlayersInTeam = this.teamToPlayers[team].size;
+        const vetoCount = Math.floor(numPlayersInTeam / 2) + 1;
+
+        if (team !== this.getPlayerTeam(id)) {
+            // this player is of different team, cannot touch his wall
+            return false;
+        }
+
+        if (!this.selectedWalls[wall].ids_who_vetoed.has(id)) {
+            this.selectedWalls[wall].ids_who_vetoed.add(id);
+
+            this.selectedWalls[wall].vetoCount++;
+            console.log('veto count of ', wall, ' is ', this.selectedWalls[wall].vetoCount);
+            if (this.selectedWalls[wall].vetoCount >= vetoCount) {
+                console.log('deleteing wall ', wall);
+                delete this.selectedWalls[wall];
+                return true;
+            }
+        }
+    }
+
+    getAllWalls() {
+        const walls = [];
+        var wallStings = Object.keys(this.selectedWalls);
+        for (var i = 0; i < wallStings.length; i++) {
+            var wall = wallStings[i];   // "x,y" (must use strings as the wall locations as the key into this.selectedWalls)
+            var [x, y] = wall.split(",");
+            x = parseInt(x);
+            y = parseInt(y);
+            walls.push({
+                x: x,
+                y: y,
+                vetoCount: this.selectedWalls[wall].vetoCount,
+                team: this.selectedWalls[wall].team
+            });
+        }
+
+        return walls;
+    }
+
     isFull() {
         return this.numPlayersPresent() >= MaxPlayersPerTeam*2;
     }
 
     getPlayerNames() {
         return getValues(this.playerNames);
+    }
+
+    getPlayerTeam(id) {
+        if(this.teamToPlayers['TeamLeft'].has(id)) {
+            return 'TeamLeft';
+        }
+        return 'TeamRight';
     }
 
     nameExists(name) {

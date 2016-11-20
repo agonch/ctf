@@ -1,4 +1,4 @@
-const Player_Colors = {
+const Team_Colors = {
     'TeamLeft': 'red',
     'TeamRight': 'blue'
 };
@@ -16,7 +16,7 @@ class GameView {
 	    console.log("Initializing...");
 		this.canvas = document.getElementById("canvas");
 		this.context = canvas.getContext("2d");
-        const {spawnPoint, boardSize, gridSize, playerPositions, playerName, namesToTeams} = startData;
+        const {spawnPoint, boardSize, gridSize, playerPositions, playerName, namesToTeams, wallPositions} = startData;
 
 		this.canvas.width = window.innerWidth - (window.innerWidth % 2) - 30; // 30 pixels prevents scrollbars from appearing
 		this.canvas.height = window.innerHeight - (window.innerHeight % 2) - 30;
@@ -26,7 +26,7 @@ class GameView {
 		this.phase = 'build';
 		this.buildTool = 'wall';
 		this.mouse = {x: 0, y: 0};
-		this.gridTopLeft;
+		this.gridTopLeft = null;
 		this.playerName = playerName;
 		this.spawnPoint = spawnPoint;
 		this.players = playerPositions;
@@ -34,7 +34,7 @@ class GameView {
 		this.boardSize = boardSize;
         GRID_SIZE = gridSize;
 		this.namesToTeams = namesToTeams; // (ex., "Anton" --> "TeamLeft")
-		this.wallPositions = [ ];
+		this.wallPositions = wallPositions;
         this.initialized = true;
 		this.draw();
 	}
@@ -77,7 +77,7 @@ class GameView {
             var [x, y] = this._getLocalCoords(pos[0], pos[1]);
             this.context.arc(x, y, GRID_SIZE / 2, 0, 2 * Math.PI);
             var team = this.namesToTeams[name];
-            this.context.fillStyle = Player_Colors[team];
+            this.context.fillStyle = Team_Colors[team];
             this.context.fill();
             this.context.stroke();
             this._drawNameAbovePlayer(name);
@@ -86,9 +86,8 @@ class GameView {
 
     _drawNameAbovePlayer(name) {
         const paddingTop = 5;
-        // var playerNum = this.playerNumbers[name];
         this.context.font = "20px serif";
-        // this.context.fillStyle = Player_Colors["Player" + playerNum];
+        // this.context.fillStyle = Team_Colors["Player" + playerNum];
         var pos = this.players[name];
         var [x, y] = this._getLocalCoords(pos[0]- GRID_SIZE, pos[1] - GRID_SIZE - paddingTop);
         this.context.fillText(name, x, y);
@@ -241,15 +240,19 @@ class GameView {
      */
     drawWalls(context) {
         for(var i = 0; i < this.wallPositions.length; i++) {
-            var [x, y] = this._getLocalCoords(this.wallPositions[i][0], this.wallPositions[i][1]);
-            this.context.fillStyle = 'brown';
+            var {x, y, team, vetoCount} = this.wallPositions[i];
+
+            [x, y] = this._getLocalCoords(x, y);
+            this.context.fillStyle = Team_Colors[team];
             this.context.fillRect(x, y, GRID_SIZE, GRID_SIZE);
+
+            // draw veto count
+            const padding = 5;
+            this.context.font = "20px serif";
+            this.context.fillStyle = 'yellow';
+            this.context.fillText(vetoCount, x + GRID_SIZE / 2, y + GRID_SIZE / 2);
         }
     }
 
-    updateWallPositions(wallPositions) {
-        this.wallPositions = wallPositions;
-        this.draw();
-    }
 }
 

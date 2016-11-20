@@ -89,7 +89,6 @@
         socket.on('updatePlayerPositions', function (names, nameToPosition) {
             // this is emitted after every game loop tick (to update all dynamic object positions at once)
             names.forEach(name => {
-                // console.log("Updating position of", name, " to ", nameToPosition[name]);
                 GAME_VIEW.setPlayerLocation(name, nameToPosition[name]);
             });
         });
@@ -100,6 +99,20 @@
         // If mouse pressed, then send to server selected block (don't draw it out, server must approve
         // and send to other users.)
 
+        // prevent context menu on canvas when right clicking
+        $('canvas').bind('contextmenu', function(e) {
+            return false;
+        });
+        var buttonClicked; // 0 = left, 2 = right button   [Left Click = select, Right Click = veto]
+
+        window.addEventListener('mouseup', function(e) {
+            buttonClicked = e.button;
+            var clickedGrid = GAME_VIEW.gridTopLeft;
+            if (buttonClicked === 2 && clickedGrid !== null) {
+                socket.emit('selectWallLocation', clickedGrid, 'veto');
+            }
+        });
+
         // Update mouse position on canvas
         window.addEventListener('mousemove', function (e) {
             var mouseCoords = getMouseCoords(GAME_VIEW.getCanvasDimensions(), e);
@@ -108,17 +121,35 @@
 
         window.addEventListener('click', function(e) {
             var clickedGrid = GAME_VIEW.gridTopLeft;
-
             // If the grid is null, the current grid is invalid
-            if (clickedGrid) {
-                socket.emit('selectWallLocation', GAME_VIEW.gridTopLeft);
+            if (buttonClicked === 0 && clickedGrid !== null) {
+                socket.emit('selectWallLocation', clickedGrid, 'select');
             }
         });
         
-        socket.on('updateWallLocation', function(wallLocations) {
+        socket.on('updateWall', function({x, y, vetoCount, team, deleted}) {
             // Some other teammate has selected a wall, (or could have been you after broadcasted to your team).
             // Display it.
-            GAME_VIEW.updateWallPositions( wallLocations );
+            console.log(x, y, vetoCount, team, deleted);
+
+            // update GAME_VIEW.wallPositions (either remove a wall, or update its vetoCount, or add a new wall)
+            for (var i = 0; i < GAME_VIEW.wallPositions.length; i++) {
+                if (x === GAME_VIEW.wallPositions[i].x && y === GAME_VIEW.wallPositions[i].y) {
+                    if (deleted) {
+                        GAME_VIEW.wallPositions.splice(i, 1);
+                        GAME_VIEW.draw();
+                        return;
+                    } else {
+                        GAME_VIEW.wallPositions[i].vetoCount = vetoCount;
+                        GAME_VIEW.draw();
+                        return;
+                    }
+                }
+            }
+
+            // if here, need to add it as a new one
+            GAME_VIEW.wallPositions.push({x: x, y: y, team: team, vetoCount: vetoCount});
+            GAME_VIEW.draw();
         });
     }
 

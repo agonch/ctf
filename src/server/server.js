@@ -80,6 +80,11 @@ io.on('connection', function (socket) {
         var newVelocities = GameLogic.calculateVelocities(vel_x, vel_y, keysPressed);
         gameState.playerVelocity[socket.id] = newVelocities;
     });
+
+    socket.on('selectWallLocation', wallLocations => {
+        console.log(wallLocations);
+        
+    });
 });
 
 

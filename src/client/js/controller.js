@@ -99,7 +99,12 @@
         });
 
         window.addEventListener('click', function(e) {
-            socket.emit('selectWallLocation', GAME_VIEW.gridTopLeft);
+            var clickedGrid = GAME_VIEW.gridTopLeft;
+
+            // If the grid is null, the current grid is invalid
+            if (clickedGrid) {
+                socket.emit('selectWallLocation', GAME_VIEW.gridTopLeft);
+            }
         });
         
         socket.on('updateWallLocation', function(wallLocations) {

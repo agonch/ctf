@@ -117,18 +117,28 @@ class GameView {
 	}
 
     _drawBuildTool() {
+        document.body.style.cursor = 'auto';
         if (this.phase != 'build') {
             return;
         }
 
+        var [left, top] = this._getLocalCoords(0, 0);
         var outOfScreen = this.mouse.x < 0 || this.mouse.y < 0 ||
             this.mouse.x > this.canvas.width || this.mouse.y > this.canvas.height;
-        if (outOfScreen) {
+        var outOfBoard = this.mouse.x < left + this.origin.x || this.mouse.y < top + this.origin.y ||
+            this.mouse.x >= this.boardSize[0] + this.origin.x + left || this.mouse.y >= this.boardSize[1] + this.origin.y + top;
+        if (outOfScreen || outOfBoard) {
+            // Clear the stored grid values since they're not valid anymore
+            this.gridTopLeft = null;
+
+            document.body.style.cursor = 'not-allowed';
             return;
         }
 
+        // Set cursor to click
+        document.body.style.cursor = 'pointer';
+
         // Snap mouse position to grid
-        var [left, top] = this._getLocalCoords(0, 0);
         var relative = this.getRelativeCoordsFromCanvasCoords(this.mouse);
         var offsetX = GRID_SIZE - left % GRID_SIZE;
         var offsetY = GRID_SIZE - top % GRID_SIZE;

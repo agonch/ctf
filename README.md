@@ -1,5 +1,10 @@
-# GridBase
-> 4 person free-for-all capture the flag
+# GridBase   
+
+#### Installation    
+npm install    
+
+
+#### 4 person free-for-all capture the flag
 -------
 * Before start of game, each player creates their own base – clicking on the grid and selecting where they want to place their walls/turrets/flag/spawn point.   
 * Upon creation, client sends map to server and you get randomly assigned with 3 other ready players.

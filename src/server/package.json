@@ -1,0 +1,53 @@
+{
+  "name": "ctf",
+  "version": "1.0.0",
+  "description": "A multiplayer capture the flag game",
+  "contributors": [
+    {
+      "name": "Ishan Ranade",
+      "email": null,
+      "url": "https://github.com/IshanRanade",
+      "contributions": 17
+    },
+    {
+      "name": "Anton Goncharenko",
+      "email": "agonch@uw.edu",
+      "url": "https://github.com/agonch",
+      "contributions": 11
+    },
+    {
+      "name": "Payton Quinn",
+      "email": "paytonq@cs.uw.edu",
+      "url": "https://github.com/paytonq",
+      "contributions": 12
+    },
+    {
+      "name": "Brice Lwo",
+      "email": null,
+      "url": "https://github.com/bricelwo",
+      "contributions": 4
+    }
+  ],
+  "main": "server.js",
+  "dependencies": {
+    "express": "^4.14.0",
+    "socket.io": "^1.6.0"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": "6.6.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agonch/ctf.git"
+  },
+  "private": true,
+  "bugs": {
+    "url": "https://github.com/agonch/ctf/issues"
+  },
+  "homepage": "https://github.com/agonch/ctf#readme"
+}

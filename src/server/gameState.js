@@ -212,12 +212,52 @@ module.exports = class GameState {
         var x = pos[0];
         var y = pos[1];
         var updatePosition = true;
-        [x, y] = this.checkEdgeCollision(pos);
+        [x, y] = this.checkEdgeCollision([x, y]);
+        updatePosition = this.checkWallCollision(([x, y]));
         if (updatePosition) {
             updatePosition = this.checkPlayerCollision(id, [x, y]);
         }
         if (updatePosition) {
             this.playerPositions[id] = [x, y];
+        }
+    }
+
+    checkWallCollision(pos) {
+        var walls = this.getAllWalls();
+        for (var i = 0; i < walls.length; i++) {
+            var wall = walls[i];
+            var cornerA = [wall.x, wall.y];
+            var cornerB = [wall.x + GameBlockSize, wall.y];
+            var cornerC = [wall.x + GameBlockSize, wall.y + GameBlockSize];
+            var cornerD = [wall.x, wall.y + GameBlockSize];
+            if (this.checkIntersection(pos, cornerA, cornerB) || this.checkIntersection(pos, cornerB, cornerC)
+                || this.checkIntersection(pos, cornerC, cornerD) || this.checkIntersection(pos, cornerD, cornerA)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    checkIntersection(circleCenter, pointA, pointB) {
+        var m = (pointB[1] - pointA[1]) / (pointB[0] - pointA[0]);
+        if (m === 0) {
+            var y = pointA[1];
+            if (y <= circleCenter[1] - GameBlockSize / 2 || y >= circleCenter[1] + GameBlockSize / 2) {
+                return false
+            }
+            var x = circleCenter[0];
+            var min = Math.min(pointA[0], pointB[0]);
+            var max = Math.max(pointA[0], pointB[0]);
+            return (x >= min && x <= max);
+        } else {
+            var x = pointA[0];
+            if (x <= circleCenter[0] - GameBlockSize / 2 || x >= circleCenter[0] + GameBlockSize / 2) {
+                return false
+            }
+            var y = circleCenter[1];
+            var min = Math.min(pointA[1], pointB[1]);
+            var max = Math.max(pointA[1], pointB[1]);
+            return (y >= min && y <= max);
         }
     }
 

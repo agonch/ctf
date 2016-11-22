@@ -211,22 +211,32 @@ module.exports = class GameState {
     updatePlayerPosition(id, pos) {
         var x = pos[0];
         var y = pos[1];
-
-        if(pos[0] < 0) {
-            x = 0;
-        } else if(pos[0] > this.boardSize[0]) {
-            x = this.boardSize[0];
+        var updatePosition = true;
+        [x, y] = this.checkEdgeCollision(pos);
+        if (updatePosition) {
+            updatePosition = this.checkPlayerCollision(id, [x, y]);
         }
-
-        if(pos[1] < 0) {
-            y = 0;
-        } else if(pos[1] > this.boardSize[1]) {
-            y = this.boardSize[1];
-        }
-        var updatePosition = this.checkForCollision(id, [x, y]);
         if (updatePosition) {
             this.playerPositions[id] = [x, y];
         }
+    }
+
+    checkEdgeCollision(pos) {
+        var x = pos[0];
+        var y = pos[1];
+        if (pos[0] < (GameBlockSize / 2)) {
+            x = (GameBlockSize / 2);
+        }
+        if (pos[0] > (this.boardSize[0] - (GameBlockSize / 2))) {
+            x = (this.boardSize[0] - (GameBlockSize / 2));
+        }
+        if (pos[1] < (GameBlockSize / 2)) {
+            y = (GameBlockSize / 2);
+        }
+        if (pos[1] > (this.boardSize[1] - (GameBlockSize / 2))) {
+            y = (this.boardSize[1] - (GameBlockSize / 2))
+        }
+        return [x, y];
     }
 
     getPlayerPosition(id) {
@@ -257,7 +267,7 @@ module.exports = class GameState {
         return [nameToPos, nameToTeam];
     }
 
-    checkForCollision(id, pos) {
+    checkPlayerCollision(id, pos) {
         var isLeft = this.teamToPlayers['TeamLeft'].has(id);
         var update = true;
         for (var key in this.playerPositions) {

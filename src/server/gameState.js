@@ -32,6 +32,7 @@ module.exports = class GameState {
             'TeamLeft':  [[GameBlockSize, GameBlockSize], [GameBlockSize, b_h - GameBlockSize]],
             'TeamRight': [[b_w - GameBlockSize, GameBlockSize], [b_w - GameBlockSize, b_h - GameBlockSize]]
         };
+        this.pressed = {};
     }
 
     // Adds wall to the team team (or decrements the veto count).
@@ -143,6 +144,7 @@ module.exports = class GameState {
         console.log("addPlayer: " + this.playerPositions[id]);
         this.playerNames[id] = name;
         this.playerVelocity[id] = [0, 0];
+        this.pressed[id] = {'W': false, 'A': false, 'S': false, 'D': false};
     }
 
     removePlayer(id) {
@@ -173,8 +175,10 @@ module.exports = class GameState {
         } else if(pos[1] > this.boardSize[1]) {
             y = this.boardSize[1];
         }
-
-        this.playerPositions[id] = [x, y];
+        var updatePosition = this.checkForCollision(id, [x, y]);
+        if (updatePosition) {
+            this.playerPositions[id] = [x, y];
+        }
     }
 
     getPlayerPosition(id) {
@@ -205,8 +209,53 @@ module.exports = class GameState {
         return [nameToPos, nameToTeam];
     }
 
+    checkForCollision(id, pos) {
+        var isLeft = this.teamToPlayers['TeamLeft'].has(id);
+        var update = true;
+        for (var key in this.playerPositions) {
+            if (key != id) {
+                var tempPos = this.playerPositions[key];
+                var tempTeamLeft = this.teamToPlayers['TeamLeft'].has(key);
+                var sameTeam = (isLeft === tempTeamLeft);
+
+                if (this.detectCollision(pos, tempPos)) {
+                    update = false;
+                    if (!sameTeam) {
+                        this.respawn(key, tempTeamLeft);
+                        this.respawn(id, isLeft);
+                    } else {
+                        var tempVel = this.playerVelocity[id];
+                        this.playerVelocity[id] = this.playerVelocity[key];
+                        this.playerVelocity[key] = tempVel;
+                    }
+                }
+            }
+        }
+        return update;
+    }
+
+    respawn(id, teamLeft) {
+        var index = Math.floor(Math.random() * 2);
+        var spawnPoint;
+        if (teamLeft) {
+            spawnPoint = this.defaultSpawnPoints['TeamLeft'][index];
+        } else {
+            spawnPoint = this.defaultSpawnPoints['TeamRight'][index];
+        }
+        this.playerPositions[id] = spawnPoint;
+    }
+
+    detectCollision(first, second) {
+        return Math.sqrt(Math.pow(first[1] - second[1], 2) + Math.pow(first[0] - second[0], 2)) <= (1.0 * GameBlockSize);
+    }
 };
 
+
+function getRandomInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min)) + min;
+}
 
 function getValues(o) {
     var values = [];

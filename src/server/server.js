@@ -76,10 +76,9 @@ io.on('connection', function (socket) {
     });
 
     socket.on('updateKeys', function(keysPressed) {
+        console.log(keysPressed);
         var [gameState, gameId] = lobbyManager.getGameState(socket.id);
-        var [vel_x, vel_y] = gameState.playerVelocity[socket.id];
-        var newVelocities = GameLogic.calculateVelocities(vel_x, vel_y, keysPressed);
-        gameState.playerVelocity[socket.id] = newVelocities;
+        gameState.pressed[socket.id] = keysPressed;
     });
 
     socket.on('selectObjectLocation', (object, location, action) => {

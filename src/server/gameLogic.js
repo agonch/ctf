@@ -1,5 +1,5 @@
 const MAX_VEL = 10.0;
-
+var tickIndex = 0;
 /* Consider this a static class, with helper methods, for determining gameState updates */
 module.exports = {
 
@@ -17,9 +17,9 @@ module.exports = {
         }
         else {
             if (vel_y > 0) {
-                vel_y-=1.0;
+                vel_y-=0.25;
             } else if (vel_y < 0) {
-                vel_y+=1.0;
+                vel_y+=0.25;
             }
         }
 
@@ -35,9 +35,9 @@ module.exports = {
         }
         else {
             if (vel_x > 0) {
-                vel_x-=1.0;
+                vel_x-=0.25;
             } else if (vel_x < 0) {
-                vel_x+=1.0;
+                vel_x+=0.25;
             }
         }
 

@@ -85,11 +85,12 @@ class GameView {
 	}
 
     _drawNameAbovePlayer(name) {
-        const paddingTop = 5;
+        const paddingTop = 16;
         this.context.font = "20px serif";
+        this.context.textAlign = 'center';
         // this.context.fillStyle = Team_Colors["Player" + playerNum];
         var pos = this.players[name];
-        var [x, y] = this._getLocalCoords(pos[0]- GRID_SIZE, pos[1] - GRID_SIZE - paddingTop);
+        var [x, y] = this._getLocalCoords(pos[0], pos[1] - GRID_SIZE / 2 - paddingTop);
         this.context.fillText(name, x, y);
     }
 
@@ -249,6 +250,7 @@ class GameView {
             // draw veto count
             const padding = 5;
             this.context.font = "20px serif";
+            this.context.textAlign = 'center';
             this.context.fillStyle = 'yellow';
             this.context.fillText(vetoCount, x + GRID_SIZE / 2, y + GRID_SIZE / 2);
         }

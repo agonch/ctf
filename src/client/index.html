@@ -24,13 +24,14 @@
                 <span>Scores go here.</span>
             </div>
             <div id="chatbox">
-                <input id="chatinput" type="text" placeholder="Chat with team here." maxlengt="35" />
+                <input id="chatinput" type="text" placeholder="Chat with team here." maxlength="35" />
             </div>
             <canvas id="canvas"></canvas>
         </div>
         <div id="startMenu">
-            <p>Welcome to CTF. Enter you nickname, press play, and we'll put you in a game.</p>
-            <input id="nameInput" type="text" tabindex="0" autofocus placeholder="Enter your name" maxlength="16" />
+            <p>Welcome to CTF. Enter your username, press Play, and we'll put you in a game.</p>
+            <input id="nameInput" type="text" tabindex="0" autofocus placeholder="Enter your name" maxlength="16" 
+                onkeydown="if (event.keyCode == 13) document.getElementById('startButton').click()"/>
             <p id="nameInputError" style="color:red;"></p>
             <br />
             <button id="startButton">Play</button>

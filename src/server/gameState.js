@@ -22,7 +22,7 @@ module.exports = class GameState {
             'TeamLeft': new Set() /*stores id's*/,
             'TeamRight': new Set()
         };
-        this.playerVelocity = {};
+        this.playerVelocity = {/* id --> [vel_x, vel_y] */};
 
         // Team game world
         this.selectedObjects = {};
@@ -36,7 +36,7 @@ module.exports = class GameState {
             'TeamLeft':  [[GameBlockSize, GameBlockSize], [GameBlockSize, b_h - GameBlockSize]],
             'TeamRight': [[b_w - GameBlockSize, GameBlockSize], [b_w - GameBlockSize, b_h - GameBlockSize]]
         };
-        this.pressed = {};
+        this.pressed = {}; // pressed keys
     }
 
     // Adds an object to the team (or decrements the veto count).
@@ -151,6 +151,7 @@ module.exports = class GameState {
         return walls;
     }
 
+    /* Game is full if both teams are filled up. */
     isFull() {
         return this.numPlayersPresent() >= MaxPlayersPerTeam*2;
     }
@@ -208,11 +209,13 @@ module.exports = class GameState {
         }
     }
 
+    /* Given pos is a list [x, y] of player position. Given pos is ignored if player collided
+     * with player/wall, and their position updated accordingly. */
     updatePlayerPosition(id, pos) {
         var x = pos[0];
         var y = pos[1];
         var updatePosition = true;
-        [x, y] = this.checkEdgeCollision([x, y]);
+        [x, y] = this.checkBoardEdgeCollision([x, y]);
         updatePosition = this.checkWallCollision(([x, y]));
         if (updatePosition) {
             updatePosition = this.checkPlayerCollision(id, [x, y]);
@@ -220,6 +223,26 @@ module.exports = class GameState {
         if (updatePosition) {
             this.playerPositions[id] = [x, y];
         }
+    }
+
+    /* Returns new player position to prevent them from crossing board edges. */
+    checkBoardEdgeCollision(pos) {
+        // pos is center of player
+        var x = pos[0];
+        var y = pos[1];
+        if (x < (GameBlockSize / 2)) {
+            x = (GameBlockSize / 2);
+        }
+        if (x > (this.boardSize[0] - (GameBlockSize / 2))) {
+            x = (this.boardSize[0] - (GameBlockSize / 2));
+        }
+        if (pos[1] < (GameBlockSize / 2)) {
+            y = (GameBlockSize / 2);
+        }
+        if (pos[1] > (this.boardSize[1] - (GameBlockSize / 2))) {
+            y = (this.boardSize[1] - (GameBlockSize / 2))
+        }
+        return [x, y];
     }
 
     checkWallCollision(pos) {
@@ -261,23 +284,6 @@ module.exports = class GameState {
         }
     }
 
-    checkEdgeCollision(pos) {
-        var x = pos[0];
-        var y = pos[1];
-        if (pos[0] < (GameBlockSize / 2)) {
-            x = (GameBlockSize / 2);
-        }
-        if (pos[0] > (this.boardSize[0] - (GameBlockSize / 2))) {
-            x = (this.boardSize[0] - (GameBlockSize / 2));
-        }
-        if (pos[1] < (GameBlockSize / 2)) {
-            y = (GameBlockSize / 2);
-        }
-        if (pos[1] > (this.boardSize[1] - (GameBlockSize / 2))) {
-            y = (this.boardSize[1] - (GameBlockSize / 2))
-        }
-        return [x, y];
-    }
 
     getPlayerPosition(id) {
         return this.playerPositions[id];
@@ -307,24 +313,27 @@ module.exports = class GameState {
         return [nameToPos, nameToTeam];
     }
 
+    // TODO move this to gameLogic to avoid duplicated collisison detection
     checkPlayerCollision(id, pos) {
         var isLeft = this.teamToPlayers['TeamLeft'].has(id);
         var update = true;
-        for (var key in this.playerPositions) {
-            if (key != id) {
-                var tempPos = this.playerPositions[key];
-                var tempTeamLeft = this.teamToPlayers['TeamLeft'].has(key);
+        const _ids = Object.keys(this.playerPositions);
+        for (var i = 0; i < _ids.length; i++) {
+            const other_id = _ids[i];
+            if (other_id !== id) {
+                var tempPos = this.playerPositions[other_id];
+                var tempTeamLeft = this.teamToPlayers['TeamLeft'].has(other_id);
                 var sameTeam = (isLeft === tempTeamLeft);
 
                 if (this.detectCollision(pos, tempPos)) {
                     update = false;
                     if (!sameTeam) {
-                        this.respawn(key, tempTeamLeft);
-                        this.respawn(id, isLeft);
+                        this.respawn(other_id);
+                        this.respawn(id);
                     } else {
                         var tempVel = this.playerVelocity[id];
-                        this.playerVelocity[id] = this.playerVelocity[key];
-                        this.playerVelocity[key] = tempVel;
+                        this.playerVelocity[id] = this.playerVelocity[other_id];
+                        this.playerVelocity[other_id] = tempVel;
                     }
                 }
             }
@@ -332,17 +341,14 @@ module.exports = class GameState {
         return update;
     }
 
-    respawn(id, teamLeft) {
-        var index = Math.floor(Math.random() * 2);
-        var spawnPoint;
-        if (teamLeft) {
-            spawnPoint = this.defaultSpawnPoints['TeamLeft'][index];
-        } else {
-            spawnPoint = this.defaultSpawnPoints['TeamRight'][index];
-        }
+    /* Updates player position to random spawn point on their team's side. */
+    respawn(id) {
+        const index = Math.floor(Math.random() * 2);
+        const spawnPoint = this.defaultSpawnPoints[this.getPlayerTeam(id)][index];
         this.playerPositions[id] = spawnPoint;
     }
 
+    /* Using Pythagorean Theorem, returns true if two players collided */
     detectCollision(first, second) {
         return Math.sqrt(Math.pow(first[1] - second[1], 2) + Math.pow(first[0] - second[0], 2)) <= (1.0 * GameBlockSize);
     }

@@ -99,18 +99,12 @@
         // If mouse pressed, then send to server selected block (don't draw it out, server must approve
         // and send to other users.)
 
+        // Start user out in Build mode
+        this.build = true;
+
         // prevent context menu on canvas when right clicking
         $('canvas').bind('contextmenu', function(e) {
             return false;
-        });
-        var buttonClicked; // 0 = left, 2 = right button   [Left Click = select, Right Click = veto]
-
-        window.addEventListener('mouseup', function(e) {
-            buttonClicked = e.button;
-            var clickedGrid = GAME_VIEW.gridTopLeft;
-            if (buttonClicked === 2 && clickedGrid !== null) {
-                socket.emit('selectWallLocation', clickedGrid, 'veto');
-            }
         });
 
         // Update mouse position on canvas
@@ -119,11 +113,23 @@
             GAME_VIEW.setMousePosition(mouseCoords);
         });
 
-        window.addEventListener('click', function(e) {
+        // Handle mouse clicks
+        // 0 = left, 2 = right button   [Left Click = select, Right Click = veto]
+        window.addEventListener('mouseup', function(e) {
+            // Do nothing if we're out of build mode
+            if (!this.build) {
+                return false;
+            }
+
+            // If the grid is null, the current highlighted grid is invalid
             var clickedGrid = GAME_VIEW.gridTopLeft;
-            // If the grid is null, the current grid is invalid
-            if (buttonClicked === 0 && clickedGrid !== null) {
-                socket.emit('selectWallLocation', clickedGrid, 'select');
+            var buttonClicked = e.button;
+            if (clickedGrid !== null) {
+                if (buttonClicked === 0) {
+                    socket.emit('selectWallLocation', clickedGrid, 'select');
+                } else if (buttonClicked === 2) {
+                    socket.emit('selectWallLocation', clickedGrid, 'veto');
+                }
             }
         });
         

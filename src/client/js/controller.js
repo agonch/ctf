@@ -71,7 +71,7 @@
             $('#startMenu').hide();
             $('#gameArea').show();
             setupKeyListeners(socket);
-            setupMouseWallListener(socket);
+            setupMouseObjectListener(socket);
             console.log('initializing Canvas with --> ', JSON.stringify(startData, null, 4));
             GAME_VIEW.initializeCanvas(startData);
             socket.emit('client_ready');
@@ -94,7 +94,7 @@
         });
     }
 
-    function setupMouseWallListener(socket) {
+    function setupMouseObjectListener(socket) {
         // When mouse hovers over a grid, gray it out to help client thinking about selecting it
         // If mouse pressed, then send to server selected block (don't draw it out, server must approve
         // and send to other users.)
@@ -126,35 +126,51 @@
             var buttonClicked = e.button;
             if (clickedGrid !== null) {
                 if (buttonClicked === 0) {
-                    socket.emit('selectWallLocation', clickedGrid, 'select');
+                    socket.emit('selectObjectLocation', GAME_VIEW.buildTool, clickedGrid, 'select');
                 } else if (buttonClicked === 2) {
-                    socket.emit('selectWallLocation', clickedGrid, 'veto');
+                    socket.emit('selectObjectLocation', GAME_VIEW.buildTool, clickedGrid, 'veto');
                 }
             }
         });
+
+        // Select build tools (temporary controls)
+        document.addEventListener('keyup', function (e) {
+            var key = String.fromCharCode(e.keyCode);
+            if (key === 'Q' || key === 'E') {
+                if (key === 'Q') {
+                    GAME_VIEW.buildToolIndex--;
+                } else {
+                    GAME_VIEW.buildToolIndex++;
+                }
+
+                // Wrap the selected build tool index and keep it positive
+                GAME_VIEW.buildToolIndex = (GAME_VIEW.buildToolIndex + Build_Tools.length) % Build_Tools.length;
+            }
+        });
         
-        socket.on('updateWall', function({x, y, vetoCount, team, deleted}) {
+        socket.on('updateObjects', function({x, y, object, vetoCount, team, deleted}) {
             // Some other teammate has selected a wall, (or could have been you after broadcasted to your team).
             // Display it.
-            console.log(x, y, vetoCount, team, deleted);
+            console.log(x, y, object, vetoCount, team, deleted);
 
-            // update GAME_VIEW.wallPositions (either remove a wall, or update its vetoCount, or add a new wall)
-            for (var i = 0; i < GAME_VIEW.wallPositions.length; i++) {
-                if (x === GAME_VIEW.wallPositions[i].x && y === GAME_VIEW.wallPositions[i].y) {
+            // search GAME_VIEW.objectPositions for the object to be updated
+            // (either remove a object, or update its vetoCount, or add a new object)
+            for (var i = 0; i < GAME_VIEW.objectPositions.length; i++) {
+                if (x === GAME_VIEW.objectPositions[i].x && y === GAME_VIEW.objectPositions[i].y) {
                     if (deleted) {
-                        GAME_VIEW.wallPositions.splice(i, 1);
+                        GAME_VIEW.objectPositions.splice(i, 1);
                         GAME_VIEW.draw();
                         return;
                     } else {
-                        GAME_VIEW.wallPositions[i].vetoCount = vetoCount;
+                        GAME_VIEW.objectPositions[i].vetoCount = vetoCount;
                         GAME_VIEW.draw();
                         return;
                     }
                 }
             }
 
-            // if here, need to add it as a new one
-            GAME_VIEW.wallPositions.push({x: x, y: y, team: team, vetoCount: vetoCount});
+            // if the object can't be found, need to add it as a new one
+            GAME_VIEW.objectPositions.push({x: x, y: y, object: object, vetoCount: vetoCount, team: team});
             GAME_VIEW.draw();
         });
     }

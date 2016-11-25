@@ -59,7 +59,7 @@ io.on('connection', function (socket) {
             playerPositions: namesToPositions,
             playerName: name,
             namesToTeams: namesToTeam,
-            wallPositions: gameState.getAllWalls()
+            objectPositions: gameState.getAllObjects()
         };
         // for new player, send game start info
         socket.emit('initialize_approved', startData);
@@ -82,35 +82,40 @@ io.on('connection', function (socket) {
         gameState.playerVelocity[socket.id] = newVelocities;
     });
 
-    socket.on('selectWallLocation', (wall, action) => {
+    socket.on('selectObjectLocation', (object, location, action) => {
         var [gameState, gameId] = lobbyManager.getGameState(socket.id);
-        wall = [wall.x, wall.y];
+        location = [location.x, location.y];
         var vetoCount;
         var team;
 
         if (action === 'select') {
-            gameState.addWall(wall, socket.id);
-            vetoCount = gameState.selectedWalls[wall].vetoCount;
+            var stateChanged = gameState.addObject(object, location, socket.id);
+            if (!stateChanged) {
+                return;
+            }
+
+            vetoCount = gameState.selectedObjects[location].vetoCount;
             team = gameState.getPlayerTeam(socket.id);
         } else if (action === 'veto') {
-            if (wall in gameState.selectedWalls) {
-                var gotDeleted = gameState.incrementVetoCount(wall, socket.id);
+            if (location in gameState.selectedObjects) {
+                var gotDeleted = gameState.incrementVetoCount(location, socket.id);
                 if (gotDeleted) {
                     vetoCount = -1;
                 } else {
-                    vetoCount = gameState.selectedWalls[wall].vetoCount;
+                    vetoCount = gameState.selectedObjects[location].vetoCount;
                     team = gameState.getPlayerTeam(socket.id);
                 }
             } else {
-                return; // user touching wall of different team
+                return; // user touching object of different team
             }
         }
 
-        console.log('gameState.selectedWalls = ', gameState.selectedWalls);
+        console.log('gameState.selectedObjects = ', gameState.selectedObjects);
 
-        io.to(gameId).emit('updateWall', {
-            x: wall[0],
-            y: wall[1],
+        io.to(gameId).emit('updateObjects', {
+            x: location[0],
+            y: location[1],
+            object: object,
             vetoCount: vetoCount,
             team: team,
             deleted: vetoCount === -1

@@ -3,6 +3,7 @@
 // Constants (these values can change later if desired)
 const MaxPlayersPerTeam = 2;
 const GameBlockSize = 50; // in pixels
+const MaxTurretsPerTeam = 2;    // TODO: indicate client-side what limits are and when they're reached
 
 // # of grid blocks for width and height
 const GridBlockWidth = 20;
@@ -22,7 +23,10 @@ module.exports = class GameState {
             'TeamRight': new Set()
         };
         this.playerVelocity = {};
-        this.selectedWalls = {};
+
+        // Team game world
+        this.selectedObjects = {};
+        this.numOfTurrets = 0;
 
         this.gameBlockSize = GameBlockSize;
         this.boardSize = [GridBlockWidth * GameBlockSize, GridBlockHeight * GameBlockSize];
@@ -34,69 +38,113 @@ module.exports = class GameState {
         };
     }
 
-    // Adds wall to the team team (or decrements the veto count).
-    addWall(wall, id) {
-        if (!(wall in this.selectedWalls)) {
-            this.selectedWalls[wall] = {
+    // Adds an object to the team (or decrements the veto count).
+    // Return true if an object was updated, false if nothing was changed
+    addObject(object, location, id) {
+        // Place the object if it doesn't already exist
+        if (!(location in this.selectedObjects)) {
+            // Don't add if we've reached the max number of instances of this object
+            if (object === 'turret') {
+                if (this.numOfTurrets >= MaxTurretsPerTeam) {
+                    return false;
+                } else {
+                    this.numOfTurrets++;
+                }
+            }
+
+            this.selectedObjects[location] = {
+                object: object,
                 vetoCount: 0,
                 team: this.getPlayerTeam(id), // what team this wall is in
                 ids_who_vetoed: new Set()  // to prevent users from vetoing twice
             };
-            console.log('added wall: ', wall);
+            console.log('added object ' + object + ': ', location);
         } else {
-            // wall already exists
+            // object already exists
             // decrease veto count (left clicking on grid decreases its veto count - basically, lets you undo your veto)
-            var count = this.selectedWalls[wall].vetoCount;
-            if (this.selectedWalls[wall].ids_who_vetoed.has(id)) {
-                this.selectedWalls[wall].ids_who_vetoed.delete(id);
-                this.selectedWalls[wall].vetoCount = Math.max(0, count - 1);
-                console.log('set wall veto count to  ', this.selectedWalls[wall].vetoCount);
+            var count = this.selectedObjects[location].vetoCount;
+            if (this.selectedObjects[location].ids_who_vetoed.has(id)) {
+                this.selectedObjects[location].ids_who_vetoed.delete(id);
+                this.selectedObjects[location].vetoCount = Math.max(0, count - 1);
+                console.log('set ' + object + ' veto count to  ', this.selectedObjects[location].vetoCount);
             }
         }
+
+        return true;
     }
 
-    // Increment the walls veto count. If veto count >= majority vote, delete it.
-    // Return true if wall got deleted
-    incrementVetoCount(wall, id) {
-        if (!(wall in this.selectedWalls)) {
+    // With the object at the given location, increment its veto count. If veto count >= majority vote, delete it.
+    // Return true if the object got deleted
+    incrementVetoCount(location, id) {
+        if (!(location in this.selectedObjects)) {
             return false;
         }
-        var team = this.selectedWalls[wall].team;
+        var team = this.selectedObjects[location].team;
         var numPlayersInTeam = this.teamToPlayers[team].size;
         const vetoCount = Math.floor(numPlayersInTeam / 2) + 1;
 
         if (team !== this.getPlayerTeam(id)) {
-            // this player is of different team, cannot touch his wall
+            // this player is of different team, cannot touch this object
             return false;
         }
 
-        if (!this.selectedWalls[wall].ids_who_vetoed.has(id)) {
-            this.selectedWalls[wall].ids_who_vetoed.add(id);
+        if (!this.selectedObjects[location].ids_who_vetoed.has(id)) {
+            this.selectedObjects[location].ids_who_vetoed.add(id);
 
-            this.selectedWalls[wall].vetoCount++;
-            console.log('veto count of ', wall, ' is ', this.selectedWalls[wall].vetoCount);
-            if (this.selectedWalls[wall].vetoCount >= vetoCount) {
-                console.log('deleteing wall ', wall);
-                delete this.selectedWalls[wall];
+            this.selectedObjects[location].vetoCount++;
+            console.log('veto count of ', location, ' is ', this.selectedObjects[location].vetoCount);
+
+            // If enough veto votes, delete the object
+            if (this.selectedObjects[location].vetoCount >= vetoCount) {
+                console.log('deleting ', this.selectedObjects[location].object, ' at ', location);
+
+                // Update count of relevant objects
+                if (this.selectedObjects[location].object === 'turret') this.numOfTurrets--;
+
+                delete this.selectedObjects[location];
                 return true;
             }
         }
     }
 
-    getAllWalls() {
-        const walls = [];
-        var wallStings = Object.keys(this.selectedWalls);
-        for (var i = 0; i < wallStings.length; i++) {
-            var wall = wallStings[i];   // "x,y" (must use strings as the wall locations as the key into this.selectedWalls)
-            var [x, y] = wall.split(",");
+    getAllObjects() {
+        const objects = [];
+        var objectStings = Object.keys(this.selectedObjects);
+        for (var i = 0; i < objectStings.length; i++) {
+            var location = objectStings[i];   // "x,y" (must use strings for the object location as the key into this.selectedObjects)
+            var [x, y] = location.split(",");
             x = parseInt(x);
             y = parseInt(y);
-            walls.push({
+            objects.push({
                 x: x,
                 y: y,
-                vetoCount: this.selectedWalls[wall].vetoCount,
-                team: this.selectedWalls[wall].team
+                object: this.selectedObjects[location].object,
+                vetoCount: this.selectedObjects[location].vetoCount,
+                team: this.selectedObjects[location].team
             });
+        }
+
+        return objects;
+    }
+
+    // TODO: Kept for legacy support transitioning from model of walls to generalized model of objects
+    getAllWalls() {
+        const walls = [];
+        var wallStings = Object.keys(this.selectedObjects);
+        for (var i = 0; i < wallStings.length; i++) {
+            var wall = wallStings[i];   // "x,y" (must use strings for the object location as the key into this.selectedObjects)
+
+            if (this.selectedObjects[wall].object == 'wall') {
+                var [x, y] = wall.split(",");
+                x = parseInt(x);
+                y = parseInt(y);
+                walls.push({
+                    x: x,
+                    y: y,
+                    vetoCount: this.selectedObjects[wall].vetoCount,
+                    team: this.selectedObjects[wall].team
+                });
+            }
         }
 
         return walls;

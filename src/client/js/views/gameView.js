@@ -3,6 +3,19 @@ const Team_Colors = {
     'TeamRight': 'blue'
 };
 
+const Build_UI = {
+    x: 0,       // x, y attributes are a factor of GRID_SIZE
+    y: 1.05,
+    size: 25,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    padding: 4,
+    textHeight: 20,
+    font: "sans-serif",
+    color: "white"
+};
+
+const Build_Tools = ['wall', 'turret'];
+
 var GRID_SIZE = 50;
 
 // This class exposes APIs that the controller can use to manipulate the game UI.
@@ -16,7 +29,7 @@ class GameView {
 	    console.log("Initializing...");
 		this.canvas = document.getElementById("canvas");
 		this.context = canvas.getContext("2d");
-        const {spawnPoint, boardSize, gridSize, playerPositions, playerName, namesToTeams, wallPositions} = startData;
+        const {spawnPoint, boardSize, gridSize, playerPositions, playerName, namesToTeams, objectPositions} = startData;
 
 		this.canvas.width = window.innerWidth - (window.innerWidth % 2) - 30; // 30 pixels prevents scrollbars from appearing
 		this.canvas.height = window.innerHeight - (window.innerHeight % 2) - 30;
@@ -24,7 +37,8 @@ class GameView {
 
 		// Mouse interaction
 		this.phase = 'build';
-		this.buildTool = 'wall';
+        this.buildToolIndex = 0;
+		this.buildTool = Build_Tools[this.buildToolIndex];
 		this.mouse = {x: 0, y: 0};
 		this.gridTopLeft = null;
 		this.playerName = playerName;
@@ -34,20 +48,22 @@ class GameView {
 		this.boardSize = boardSize;
         GRID_SIZE = gridSize;
 		this.namesToTeams = namesToTeams; // (ex., "Anton" --> "TeamLeft")
-		this.wallPositions = wallPositions;
+		this.objectPositions = objectPositions;
         this.initialized = true;
 		this.draw();
 	}
 
-	draw() {
-		this._clearCanvas();
+    draw() {
+        this._clearCanvas();
         //this._drawBackground();
-		this._drawGameBoard();
-		this._drawBuildTool();
-		this._drawGridLines();
-		this._drawPlayers();
-		this.drawWalls();
-	}
+        this._drawGameBoard();
+        this._drawBuildTool();
+        this._drawGridLines();
+        this._drawPlayers();
+        this._drawObjects();
+
+        this._drawUI();
+    }
 
     _clearCanvas() {
         var [x, y] = this._getLocalCoords(-this.canvas.width, -this.canvas.height);
@@ -120,6 +136,9 @@ class GameView {
             return;
         }
 
+        // Update the tool selected
+        this.buildTool = Build_Tools[this.buildToolIndex];
+
         var [left, top] = this._getLocalCoords(0, 0);
         var outOfScreen = this.mouse.x < 0 || this.mouse.y < 0 ||
             this.mouse.x > this.canvas.width || this.mouse.y > this.canvas.height;
@@ -153,11 +172,33 @@ class GameView {
         this.gridTopLeft = {x: localGridX, y: localGridY};
 
         switch (this.buildTool) {
+            default:
             case 'wall':
                 this.context.fillStyle = 'gray';
                 this.context.fillRect(gridX, gridY, GRID_SIZE, GRID_SIZE);
-            default:
                 break;
+            //case 'turret':
+            //    break;
+        }
+    }
+
+    _drawUI() {
+        // Build UI
+        // TODO: make an actual UI rather than keyboard controlled?
+        if (this.phase === 'build') {
+            this.context.font = Build_UI.textHeight + "px " + Build_UI.font;
+            this.context.textAlign = 'center';
+            var text = "[Q] Placing: " + this.buildTool + " [E]";
+            var pos = this.players[this.playerName];
+            var [x, y] = this._getLocalCoords(pos[0] + GRID_SIZE * Build_UI.x, pos[1] + GRID_SIZE * Build_UI.y);
+            var box = this.context.measureText(text);
+            this.context.fillStyle = Build_UI.backgroundColor;
+            this.context.fillRect(x - box.width/2 - Build_UI.padding, 
+                                  y - Build_UI.textHeight - Build_UI.padding, 
+                                  box.width + Build_UI.padding * 2, 
+                                  Build_UI.size + Build_UI.padding * 2);
+            this.context.fillStyle = Build_UI.color;
+            this.context.fillText(text, x, y);
         }
     }
 
@@ -237,15 +278,35 @@ class GameView {
     }
 
     /**
-     * Wall View
+     * Objects View
      */
-    drawWalls(context) {
-        for(var i = 0; i < this.wallPositions.length; i++) {
-            var {x, y, team, vetoCount} = this.wallPositions[i];
-
+    _drawObjects(context) {
+        for(var i = 0; i < this.objectPositions.length; i++) {
+            var {x, y, object, vetoCount, team} = this.objectPositions[i];
             [x, y] = this._getLocalCoords(x, y);
-            this.context.fillStyle = Team_Colors[team];
-            this.context.fillRect(x, y, GRID_SIZE, GRID_SIZE);
+
+            // Draw the object
+            switch (object) {
+                case 'wall':
+                    this.context.fillStyle = Team_Colors[team];
+                    this.context.fillRect(x, y, GRID_SIZE, GRID_SIZE);
+                    break;
+                case 'turret':
+                    var basePadding = 0.1;  // factor of GRID_SIZE
+                    this.context.fillStyle = Team_Colors[team];
+                    this.context.fillRect(x + GRID_SIZE*basePadding, y + GRID_SIZE*basePadding, 
+                                          GRID_SIZE * (1 - basePadding*2), GRID_SIZE * (1 - basePadding*2));
+                    break;
+                default:
+                    // Indicate an unrecognized object for later troubleshooting
+                    this.context.fillStyle = Team_Colors[team];
+                    this.context.font = "12px sans-serif";
+                    this.context.textAlign = 'center';
+                    this.context.fillStyle = 'black';
+                    this.context.fillText("OBJERR", x + GRID_SIZE / 2, y + GRID_SIZE / 2);
+                    break;
+            }
+            
 
             // draw veto count
             const padding = 5;

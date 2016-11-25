@@ -18,8 +18,8 @@ class GameView {
 		this.context = canvas.getContext("2d");
         const {spawnPoint, boardSize, gridSize, playerPositions, playerName, namesToTeams, wallPositions} = startData;
 
-		this.canvas.width = window.innerWidth - (window.innerWidth % 2) - 30; // 30 pixels prevents scrollbars from appearing
-		this.canvas.height = window.innerHeight - (window.innerHeight % 2) - 30;
+		this.canvas.width = window.innerWidth - (window.innerWidth % 2) - 80; // 30 pixels prevents scrollbars from appearing
+		this.canvas.height = window.innerHeight - (window.innerHeight % 2) - 80;
 		this.origin = {x: 0, y: 0};
 
 		// Mouse interaction
@@ -37,6 +37,22 @@ class GameView {
 		this.wallPositions = wallPositions;
         this.initialized = true;
 		this.draw();
+
+        this.scale = 1;
+        var that = this;
+        this.canvas.onmousewheel = function (event){
+            var pos = that.players[that.playerName];
+            var [x, y] = that._getLocalCoords(pos[0], pos[1]);
+            var wheel = event.wheelDelta / 120;
+
+            var zoom = 1 + wheel / 2;
+
+            that.context.translate(x, y);
+            that.context.scale(zoom,zoom);
+            that.context.translate(-x, -y);
+            that.scale *= zoom;
+            console.log("SCROLL");
+        }
 	}
 
 	draw() {
@@ -199,7 +215,7 @@ class GameView {
         var offsetY = y - cornerY; 
         return [offsetX, offsetY];
     }
-
+/*(
     zoom(factor) {
         var localX = this.canvas.width / 2;
         var localY = this.canvas.height / 2;
@@ -208,7 +224,7 @@ class GameView {
         this.context.scale(factor, factor);
         this.context.translate(- (localX - scaledX), - (localY - scaledY));
     }
-
+*/
     getCanvasDimensions() {
         // Dimensions with left, top, right, bottom, x, y, width, height
         var dimensions = this.canvas.getBoundingClientRect();

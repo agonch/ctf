@@ -224,7 +224,6 @@ class GameView {
         }
 
 		this.players[name] = pos;
-        this.draw();
 	}
 
     moveCamera(deltaX, deltaY) {

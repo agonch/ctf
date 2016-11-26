@@ -91,6 +91,8 @@
             names.forEach(name => {
                 GAME_VIEW.setPlayerLocation(name, nameToPosition[name]);
             });
+            
+            GAME_VIEW.draw();
         });
 
         // Triggered when turrets have changed behavioral states, syncing all attributes back to the server's

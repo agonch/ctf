@@ -98,6 +98,8 @@ module.exports = class GameState {
                 this.selectedObjects[location].ids_who_vetoed.delete(id);
                 this.selectedObjects[location].vetoCount = Math.max(0, count - 1);
                 console.log('set ' + objectType + ' veto count to  ', this.selectedObjects[location].vetoCount);
+            } else {
+                return false;
             }
         }
 

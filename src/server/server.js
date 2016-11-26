@@ -9,6 +9,7 @@ const LobbyManager = require('./lobbyManager.js');
 
 const lobbyManager = new LobbyManager();
 
+const TickRate = 40;            // 40 ticks per second (virtual FPS)
 var GameLoopInterval = null;
 
 http.listen(3000, function() {
@@ -53,6 +54,7 @@ io.on('connection', function (socket) {
 
         const [namesToPositions, namesToTeam] = gameState.getAllPlayers();
         const startData = {
+            tickRate: TickRate,
             spawnPoint: gameState.getPlayerPosition(socket.id), // initially is default location for new player
             boardSize: gameState.boardSize,
             gridSize: gameState.gameBlockSize,
@@ -75,6 +77,17 @@ io.on('connection', function (socket) {
         socket.join(gameId);
         if (GameLoopInterval === null)
             GameLoop();
+    });
+
+    // Client requests to calibrate its local clock with ours
+    socket.on('calibrate:start', function(clientTime) {
+        // Get total offset between client's local clock and the server's clock
+        // Total offset includes both latency and the difference between clocks
+        var serverTime = Date.now();
+        var totalOffset = serverTime - clientTime;
+
+        // Continue the calibration response
+        socket.emit('calibrate:respond', serverTime, totalOffset);
     });
 
     socket.on('updateKeys', function(keysPressed) {
@@ -135,14 +148,18 @@ io.on('connection', function (socket) {
 
 
 function GameLoop() {
+    var tick = 0;
+
     GameLoopInterval = setInterval(() => {
+        tick = (tick + 1) % TickRate;
         for(var i = 0; i < lobbyManager.games.length; i++)
         {
             var gameId = i.toString();
             var gameState = lobbyManager.games[i];
 
-            // get updated values to send to all clients (for this game)
-
+            /**
+             * Get updated values to send to all clients (for this game):
+             */
             // Update player positions
             GameLogic.tickPlayerPositions(gameState);
             const [nameToPosition, _] = gameState.getAllPlayers();
@@ -150,13 +167,20 @@ function GameLoop() {
             io.to(gameId).emit('updatePlayerPositions', names, nameToPosition);
 
             // Update turret states
+            // Accuracy of our timing tends to degrade noticeably past about a second,
+            //  due to unprecise timing on both server/client so resync all states every second
             var updatedTurretStates = GameLogic.tickTurrets(gameState);
-            if (Object.keys(updatedTurretStates).length) {
-                // Send 'updateTurrets' event only if a state has been updated
-                io.to(gameId).emit('updateTurrets', updatedTurretStates);
+            if (tick !== 0) {
+                if (Object.keys(updatedTurretStates).length) {
+                    // Send 'updateTurrets' event only if a state has been updated
+                    io.to(gameId).emit('updateTurrets', updatedTurretStates);
+                }
+            } else {
+                // Resync states completely
+                io.to(gameId).emit('updateTurrets', gameState.turretState);
             }
         }
     },
-        1000 / 40 /* 40 FPS */);
+        1000 / TickRate /* TickRate of 40 FPS */);
 }
 

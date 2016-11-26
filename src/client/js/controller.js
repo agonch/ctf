@@ -74,6 +74,7 @@
             setupMouseObjectListener(socket);
             console.log('initializing Canvas with --> ', JSON.stringify(startData, null, 4));
             GAME_VIEW.initializeCanvas(startData);
+            socket.emit('calibrate:start');     // Request to calibrate clocks with the server right off the bat
             socket.emit('client_ready');
         });
 
@@ -84,6 +85,20 @@
             } else {
                 // TODO
             }
+        });
+
+        socket.on('calibrate:respond', function(serverTime, totalOffset) {
+            // Network Time Protocol
+            // Separate the latency from the totalOffset of clocks to get the offset of our clock vs. the server
+            // offset = ((serverTime - startTime) + (serverTime - clientTime)) / 2,
+            //  where startTime was client's time at calibrate:start
+            // offset = (totalOffset + (serverTime - clientTime)) / 2
+            var clientTime = Date.now();
+            var responseDiff = clientTime - serverTime;
+            var offset = (totalOffset + (serverTime - clientTime)) / 2;
+
+            Time_Offset = offset;
+            console.log("Client clock ahead of server by", -Time_Offset, "ms");
         });
 
         socket.on('updatePlayerPositions', function (names, nameToPosition) {

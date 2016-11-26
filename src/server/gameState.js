@@ -69,7 +69,7 @@ module.exports = class GameState {
                     var turretId = (++this.turretIndex);
                     var [x, y] = location;
                     this.turretState[turretId] = {
-                        angle: 0,
+                        angle: -90,             // start turret pointing up
                         trackedPlayer: null,
                         speed: 0,
                         x: x,

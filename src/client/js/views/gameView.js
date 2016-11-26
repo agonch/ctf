@@ -14,8 +14,15 @@ const Build_UI = {
     color: "white"
 };
 
+var Start_Time = 0;         // Local computer time of when last rendered (to calculate how much time/steps has elapsed)
+var Current_Time = 0;       // Current time calibrated with the server
+var Time_Offset = 0;        // Local computer time offset against the server to correct differently-calibrated clocks
+var Time_Deficit = 0;       // Deficit in rendering on-time with Time to make up with next draw
+var Step_Deficit = 0;       // Number of virtual steps (approximates the number of ticks the server would have performed on its end)    
+
+var TICK_RATE = 40;         // Get the server's processing rate to simulate locally
 var GRID_SIZE = 50;
-var Build_Tools = [];     // let the server set this when initializing
+var Build_Tools = [];       // let the server set this when initializing
 
 // This class exposes APIs that the controller can use to manipulate the game UI.
 class GameView {
@@ -28,9 +35,16 @@ class GameView {
 	    console.log("Initializing...");
 		this.canvas = document.getElementById("canvas");
 		this.context = canvas.getContext("2d");
-        const {spawnPoint, boardSize, gridSize, playerPositions, playerName, namesToTeams, objectPositions, validObjectTypes} = startData;
+
+        // Initialize game values
+        const {tickRate, 
+            spawnPoint, boardSize, gridSize, playerPositions, playerName, namesToTeams, 
+            objectPositions, turretStates, 
+            validObjectTypes} = startData;
+        TICK_RATE = tickRate;
         GRID_SIZE = gridSize;
         Build_Tools = validObjectTypes;
+        Start_Time = Date.now();        // Client local time when created
 
 		this.canvas.width = window.innerWidth - (window.innerWidth % 2) - 30; // 30 pixels prevents scrollbars from appearing
 		this.canvas.height = window.innerHeight - (window.innerHeight % 2) - 30;
@@ -59,6 +73,13 @@ class GameView {
 	}
 
     draw() {
+        Current_Time = Date.now() + Time_Offset;
+        Time_Deficit = Current_Time - Start_Time;  // amount of time elapsed since last draw
+        Start_Time = Current_Time;
+        Step_Deficit = TICK_RATE / (1000 / Time_Deficit);   // estimate number of steps (ticks) since last draw
+        if (Step_Deficit > 1000000) Step_Deficit = 1;       // floor massive/infinity (divide-by-zero) deficits to 1
+
+
         this._clearCanvas();
         //this._drawBackground();
         this._drawGameBoard();
@@ -306,6 +327,9 @@ class GameView {
                     if (!turret) {
                         break;
                     }
+
+                    // For now, just update the simple logic of the turret turning at a constant
+                    turret.angle += turret.speed * Step_Deficit;
 
                     __drawTurret(this.context, x, y, turret.angle, Team_Colors[team]);
 

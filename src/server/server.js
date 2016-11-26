@@ -59,7 +59,8 @@ io.on('connection', function (socket) {
             playerPositions: namesToPositions,
             playerName: name,
             namesToTeams: namesToTeam,
-            objectPositions: gameState.getAllObjects()
+            objectPositions: gameState.getAllObjects(),
+            validObjectTypes: gameState.getValidObjectTypes()  // Tell the player what objects they can build
         };
         // for new player, send game start info
         socket.emit('initialize_approved', startData);
@@ -82,14 +83,14 @@ io.on('connection', function (socket) {
         gameState.playerVelocity[socket.id] = newVelocities;
     });
 
-    socket.on('selectObjectLocation', (object, location, action) => {
+    socket.on('selectObjectLocation', (objectType, location, action) => {
         var [gameState, gameId] = lobbyManager.getGameState(socket.id);
         location = [location.x, location.y];
         var vetoCount;
         var team;
 
         if (action === 'select') {
-            var stateChanged = gameState.addObject(object, location, socket.id);
+            var stateChanged = gameState.addObject(objectType, location, socket.id);
             if (!stateChanged) {
                 return;
             }
@@ -115,7 +116,7 @@ io.on('connection', function (socket) {
         io.to(gameId).emit('updateObjects', {
             x: location[0],
             y: location[1],
-            object: object,
+            objectType: objectType,
             vetoCount: vetoCount,
             team: team,
             deleted: vetoCount === -1

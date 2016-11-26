@@ -3,6 +3,7 @@
 // Constants (these values can change later if desired)
 const MaxPlayersPerTeam = 2;
 const GameBlockSize = 50; // in pixels
+const ValidObjectTypes = ['wall', 'turret'];    // Validate objectType sent by client before propagating to other players
 const MaxTurretsPerTeam = 2;    // TODO: indicate client-side what limits are and when they're reached
 
 // # of grid blocks for width and height
@@ -26,7 +27,7 @@ module.exports = class GameState {
 
         // Team game world
         this.selectedObjects = {};
-        this.numOfTurrets = 0;
+        this.numOfTurrets = {};
 
         this.gameBlockSize = GameBlockSize;
         this.boardSize = [GridBlockWidth * GameBlockSize, GridBlockHeight * GameBlockSize];
@@ -40,25 +41,33 @@ module.exports = class GameState {
 
     // Adds an object to the team (or decrements the veto count).
     // Return true if an object was updated, false if nothing was changed
-    addObject(object, location, id) {
+    addObject(objectType, location, id) {
         // Place the object if it doesn't already exist
         if (!(location in this.selectedObjects)) {
-            // Don't add if we've reached the max number of instances of this object
-            if (object === 'turret') {
-                if (this.numOfTurrets >= MaxTurretsPerTeam) {
+            var team = this.getPlayerTeam(id);      // what team this object belongs to
+
+            // objectType is invalid, don't add to model
+            if (!(ValidObjectTypes.indexOf(objectType) >= 0)) {
+                return false;
+            }
+
+            // Reached the max number of instances of this object, don't add
+            if (objectType === 'turret') {
+                if (this.numOfTurrets[team] && this.numOfTurrets[team] >= MaxTurretsPerTeam) {
                     return false;
                 } else {
-                    this.numOfTurrets++;
+                    if (!this.numOfTurrets[team]) this.numOfTurrets[team] = 0;
+                    this.numOfTurrets[team]++;
                 }
             }
 
             this.selectedObjects[location] = {
-                object: object,
+                objectType: objectType,
                 vetoCount: 0,
-                team: this.getPlayerTeam(id), // what team this wall is in
+                team: team,
                 ids_who_vetoed: new Set()  // to prevent users from vetoing twice
             };
-            console.log('added object ' + object + ': ', location);
+            console.log('added ' + objectType + ': ', location);
         } else {
             // object already exists
             // decrease veto count (left clicking on grid decreases its veto count - basically, lets you undo your veto)
@@ -66,7 +75,7 @@ module.exports = class GameState {
             if (this.selectedObjects[location].ids_who_vetoed.has(id)) {
                 this.selectedObjects[location].ids_who_vetoed.delete(id);
                 this.selectedObjects[location].vetoCount = Math.max(0, count - 1);
-                console.log('set ' + object + ' veto count to  ', this.selectedObjects[location].vetoCount);
+                console.log('set ' + objectType + ' veto count to  ', this.selectedObjects[location].vetoCount);
             }
         }
 
@@ -96,10 +105,10 @@ module.exports = class GameState {
 
             // If enough veto votes, delete the object
             if (this.selectedObjects[location].vetoCount >= vetoCount) {
-                console.log('deleting ', this.selectedObjects[location].object, ' at ', location);
+                console.log('deleting ', this.selectedObjects[location].objectType, ' at ', location);
 
                 // Update count of relevant objects
-                if (this.selectedObjects[location].object === 'turret') this.numOfTurrets--;
+                if (this.selectedObjects[location].objectType === 'turret') this.numOfTurrets[team]--;
 
                 delete this.selectedObjects[location];
                 return true;
@@ -118,13 +127,17 @@ module.exports = class GameState {
             objects.push({
                 x: x,
                 y: y,
-                object: this.selectedObjects[location].object,
+                objectType: this.selectedObjects[location].objectType,
                 vetoCount: this.selectedObjects[location].vetoCount,
                 team: this.selectedObjects[location].team
             });
         }
 
         return objects;
+    }
+
+    getValidObjectTypes() {
+        return ValidObjectTypes;
     }
 
     // TODO: Kept for legacy support transitioning from model of walls to generalized model of objects
@@ -134,7 +147,7 @@ module.exports = class GameState {
         for (var i = 0; i < wallStings.length; i++) {
             var wall = wallStings[i];   // "x,y" (must use strings for the object location as the key into this.selectedObjects)
 
-            if (this.selectedObjects[wall].object == 'wall') {
+            if (this.selectedObjects[wall].objectType == 'wall') {
                 var [x, y] = wall.split(",");
                 x = parseInt(x);
                 y = parseInt(y);

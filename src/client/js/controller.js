@@ -148,10 +148,10 @@
             }
         });
         
-        socket.on('updateObjects', function({x, y, object, vetoCount, team, deleted}) {
+        socket.on('updateObjects', function({x, y, objectType, vetoCount, team, deleted}) {
             // Some other teammate has selected a wall, (or could have been you after broadcasted to your team).
             // Display it.
-            console.log(x, y, object, vetoCount, team, deleted);
+            console.log(x, y, objectType, vetoCount, team, deleted);
 
             // search GAME_VIEW.objectPositions for the object to be updated
             // (either remove a object, or update its vetoCount, or add a new object)
@@ -170,7 +170,7 @@
             }
 
             // if the object can't be found, need to add it as a new one
-            GAME_VIEW.objectPositions.push({x: x, y: y, object: object, vetoCount: vetoCount, team: team});
+            GAME_VIEW.objectPositions.push({x: x, y: y, objectType: objectType, vetoCount: vetoCount, team: team});
             GAME_VIEW.draw();
         });
     }

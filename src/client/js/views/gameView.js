@@ -14,9 +14,8 @@ const Build_UI = {
     color: "white"
 };
 
-const Build_Tools = ['wall', 'turret'];
-
 var GRID_SIZE = 50;
+var Build_Tools = [];     // let the server set this when initializing
 
 // This class exposes APIs that the controller can use to manipulate the game UI.
 class GameView {
@@ -29,7 +28,9 @@ class GameView {
 	    console.log("Initializing...");
 		this.canvas = document.getElementById("canvas");
 		this.context = canvas.getContext("2d");
-        const {spawnPoint, boardSize, gridSize, playerPositions, playerName, namesToTeams, objectPositions} = startData;
+        const {spawnPoint, boardSize, gridSize, playerPositions, playerName, namesToTeams, objectPositions, validObjectTypes} = startData;
+        GRID_SIZE = gridSize;
+        Build_Tools = validObjectTypes;
 
 		this.canvas.width = window.innerWidth - (window.innerWidth % 2) - 30; // 30 pixels prevents scrollbars from appearing
 		this.canvas.height = window.innerHeight - (window.innerHeight % 2) - 30;
@@ -46,7 +47,6 @@ class GameView {
 		this.players = playerPositions;
 		this.players[playerName] = spawnPoint;
 		this.boardSize = boardSize;
-        GRID_SIZE = gridSize;
 		this.namesToTeams = namesToTeams; // (ex., "Anton" --> "TeamLeft")
 		this.objectPositions = objectPositions;
         this.initialized = true;
@@ -282,11 +282,11 @@ class GameView {
      */
     _drawObjects(context) {
         for(var i = 0; i < this.objectPositions.length; i++) {
-            var {x, y, object, vetoCount, team} = this.objectPositions[i];
+            var {x, y, objectType, vetoCount, team} = this.objectPositions[i];
             [x, y] = this._getLocalCoords(x, y);
 
             // Draw the object
-            switch (object) {
+            switch (objectType) {
                 case 'wall':
                     this.context.fillStyle = Team_Colors[team];
                     this.context.fillRect(x, y, GRID_SIZE, GRID_SIZE);

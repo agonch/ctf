@@ -41,7 +41,9 @@ class GameView {
         this.buildToolIndex = 0;
 		this.buildTool = Build_Tools[this.buildToolIndex];
 		this.mouse = {x: 0, y: 0};
-		this.gridTopLeft = null;
+		this.gridTopLeft = null;      // currently selected grid cell on the game board
+
+        // Local game model loaded in from server
 		this.playerName = playerName;
 		this.spawnPoint = spawnPoint;
 		this.players = playerPositions;
@@ -49,6 +51,9 @@ class GameView {
 		this.boardSize = boardSize;
 		this.namesToTeams = namesToTeams; // (ex., "Anton" --> "TeamLeft")
 		this.objectPositions = objectPositions;
+        this.turretState = turretStates; // turretId --> {turret state attributes}
+
+        // Initialize canvas
         this.initialized = true;
 		this.draw();
 	}
@@ -171,14 +176,16 @@ class GameView {
         var localGridY = GRID_SIZE * Math.floor((relative.y - top) / GRID_SIZE);
         this.gridTopLeft = {x: localGridX, y: localGridY};
 
+        const highlightColor = 'gray';
         switch (this.buildTool) {
             default:
             case 'wall':
-                this.context.fillStyle = 'gray';
+                this.context.fillStyle = highlightColor;
                 this.context.fillRect(gridX, gridY, GRID_SIZE, GRID_SIZE);
                 break;
-            //case 'turret':
-            //    break;
+            case 'turret':
+                __drawTurret(this.context, gridX, gridY, -90, highlightColor);
+                break;
         }
     }
 
@@ -292,10 +299,17 @@ class GameView {
                     this.context.fillRect(x, y, GRID_SIZE, GRID_SIZE);
                     break;
                 case 'turret':
-                    var basePadding = 0.1;  // factor of GRID_SIZE
-                    this.context.fillStyle = Team_Colors[team];
-                    this.context.fillRect(x + GRID_SIZE*basePadding, y + GRID_SIZE*basePadding, 
-                                          GRID_SIZE * (1 - basePadding*2), GRID_SIZE * (1 - basePadding*2));
+                    // Check turretState to get necessary values such as the angle
+                    var turretId = this.objectPositions[i].details.turretId;
+                    var turret = this.turretState[turretId];
+
+                    // Skip drawing if we're still waiting on the server to update us with a state
+                    if (!turret) {
+                        break;
+                    }
+
+                    __drawTurret(this.context, x, y, turret.angle, Team_Colors[team]);
+
                     break;
                 default:
                     // Indicate an unrecognized object for later troubleshooting
@@ -303,7 +317,7 @@ class GameView {
                     this.context.font = "12px sans-serif";
                     this.context.textAlign = 'center';
                     this.context.fillStyle = 'black';
-                    this.context.fillText("OBJERR", x + GRID_SIZE / 2, y + GRID_SIZE / 2);
+                    this.context.fillText("OBJERR", x + GRID_SIZE/2, y + GRID_SIZE/2);
                     break;
             }
             
@@ -319,3 +333,36 @@ class GameView {
 
 }
 
+// Draw a turret with the given angle in degrees and color
+function __drawTurret(context, x, y, angle, color) {
+    const basePadding = 0.1;  // factor of GRID_SIZE
+    context.fillStyle = color;
+    context.fillRect(x + GRID_SIZE*basePadding, y + GRID_SIZE*basePadding, 
+                          GRID_SIZE * (1 - basePadding*2), GRID_SIZE * (1 - basePadding*2));
+    context.fillStyle = 'white';
+    context.beginPath();
+    context.arc(x + GRID_SIZE/2, y + GRID_SIZE/2, GRID_SIZE/3, 0, 2 * Math.PI);
+    context.fill();
+    context.fillStyle = color;
+    context.beginPath();
+    context.arc(x + GRID_SIZE/2, y + GRID_SIZE/2, GRID_SIZE/4, 0, 2 * Math.PI);
+    context.fill();
+    context.stroke();
+
+    // Draw a rotated turret barrel
+    angle = angle * Math.PI/180;
+    const length = GRID_SIZE/2;
+    const width = GRID_SIZE/2;
+    var x1 = x + GRID_SIZE/2;
+    var y1 = y + GRID_SIZE/2;
+    var x2 = x1 + length*Math.cos(angle);
+    var y2 = y1 + length*Math.sin(angle);
+    context.save();
+    context.beginPath();
+    context.moveTo(x1, y1);
+    context.lineTo(x2, y2);
+    context.lineWidth = width;
+    context.strokeStyle = color;
+    context.stroke();
+    context.restore();
+}

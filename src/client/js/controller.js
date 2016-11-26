@@ -92,6 +92,14 @@
                 GAME_VIEW.setPlayerLocation(name, nameToPosition[name]);
             });
         });
+
+        // Triggered when turrets have changed behavioral states, syncing all attributes back to the server's
+        socket.on('updateTurrets', function(updatedStates) {
+            // updatedStates maps turretId -> turretState
+            for (var turretId in updatedStates) {
+                GAME_VIEW.turretState[turretId] = updatedStates[turretId];
+            }
+        });
     }
 
     function setupMouseObjectListener(socket) {
@@ -148,7 +156,7 @@
             }
         });
         
-        socket.on('updateObjects', function({x, y, objectType, vetoCount, team, deleted}) {
+        socket.on('updateObjects', function({x, y, objectType, vetoCount, team, deleted, details}) {
             // Some other teammate has selected a wall, (or could have been you after broadcasted to your team).
             // Display it.
             console.log(x, y, objectType, vetoCount, team, deleted);
@@ -158,6 +166,12 @@
             for (var i = 0; i < GAME_VIEW.objectPositions.length; i++) {
                 if (x === GAME_VIEW.objectPositions[i].x && y === GAME_VIEW.objectPositions[i].y) {
                     if (deleted) {
+                        // Remove object states if they exist
+                        if (GAME_VIEW.objectPositions[i].objectType === 'turret') {
+                            var turretId = GAME_VIEW.objectPositions[i].details.turretId;
+                            delete GAME_VIEW.turretState[turretId];
+                        }
+
                         GAME_VIEW.objectPositions.splice(i, 1);
                         GAME_VIEW.draw();
                         return;
@@ -170,7 +184,21 @@
             }
 
             // if the object can't be found, need to add it as a new one
-            GAME_VIEW.objectPositions.push({x: x, y: y, objectType: objectType, vetoCount: vetoCount, team: team});
+            var attributes = {x: x, y: y, objectType: objectType, vetoCount: vetoCount, team: team};
+            if (objectType === 'turret') {
+                // Handle the turret, which should have a turretId detail that henceforth ties it to a turretState
+                if (details && details.turretId !== null) {
+                    // Add an additional attribute to turret objects so we can look up its state later
+                    // (turretState updated later as a separate event)
+                    attributes.details = {};
+                    attributes.details.turretId = details.turretId;
+                } else {
+                    // Otherwise, reject the turret if no id was given (since the client won't be able to update it)
+                    return false;
+                }
+            }
+
+            GAME_VIEW.objectPositions.push(attributes);
             GAME_VIEW.draw();
         });
     }

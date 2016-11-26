@@ -60,6 +60,7 @@ io.on('connection', function (socket) {
             playerName: name,
             namesToTeams: namesToTeam,
             objectPositions: gameState.getAllObjects(),
+            turretStates: gameState.turretState,
             validObjectTypes: gameState.getValidObjectTypes()  // Tell the player what objects they can build
         };
         // for new player, send game start info
@@ -113,14 +114,22 @@ io.on('connection', function (socket) {
 
         console.log('gameState.selectedObjects = ', gameState.selectedObjects);
 
-        io.to(gameId).emit('updateObjects', {
+        var attributes = {
             x: location[0],
             y: location[1],
             objectType: objectType,
             vetoCount: vetoCount,
             team: team,
             deleted: vetoCount === -1
-        });
+        };
+
+        // Add in an additional sub-object of optional attributes
+        //  if the object still exists and contains a details object
+        if (gameState.selectedObjects[location] && gameState.selectedObjects[location].details) {
+            attributes.details = gameState.selectedObjects[location].details;
+        }
+
+        io.to(gameId).emit('updateObjects', attributes);
     });
 });
 
@@ -129,13 +138,23 @@ function GameLoop() {
     GameLoopInterval = setInterval(() => {
         for(var i = 0; i < lobbyManager.games.length; i++)
         {
+            var gameId = i.toString();
             var gameState = lobbyManager.games[i];
-            GameLogic.tickPlayerPositions(gameState);
 
             // get updated values to send to all clients (for this game)
+
+            // Update player positions
+            GameLogic.tickPlayerPositions(gameState);
             const [nameToPosition, _] = gameState.getAllPlayers();
             var names = gameState.getPlayerNames();
-            io.to(i.toString()).emit('updatePlayerPositions', names, nameToPosition);
+            io.to(gameId).emit('updatePlayerPositions', names, nameToPosition);
+
+            // Update turret states
+            var updatedTurretStates = GameLogic.tickTurrets(gameState);
+            if (Object.keys(updatedTurretStates).length) {
+                // Send 'updateTurrets' event only if a state has been updated
+                io.to(gameId).emit('updateTurrets', updatedTurretStates);
+            }
         }
     },
         1000 / 40 /* 40 FPS */);

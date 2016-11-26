@@ -27,7 +27,9 @@ module.exports = class GameState {
 
         // Team game world
         this.selectedObjects = {};
-        this.numOfTurrets = {};
+        this.numOfTurrets = {/* team --> turretCount */};
+        this.turretState = {/* turretId --> turret state */};   // turretId formed by nth turret created
+        this.turretIndex = -1;  // Sequence index of latest turret created
 
         this.gameBlockSize = GameBlockSize;
         this.boardSize = [GridBlockWidth * GameBlockSize, GridBlockHeight * GameBlockSize];
@@ -45,19 +47,38 @@ module.exports = class GameState {
         // Place the object if it doesn't already exist
         if (!(location in this.selectedObjects)) {
             var team = this.getPlayerTeam(id);      // what team this object belongs to
+            var details = {};                       // additional details regarding this object
 
             // objectType is invalid, don't add to model
             if (!(ValidObjectTypes.indexOf(objectType) >= 0)) {
                 return false;
             }
 
-            // Reached the max number of instances of this object, don't add
+            // Turrets
             if (objectType === 'turret') {
                 if (this.numOfTurrets[team] && this.numOfTurrets[team] >= MaxTurretsPerTeam) {
+                    // Reached the max number of instances of turrets, don't add
                     return false;
                 } else {
+                    // Keep track of the number of turrets this team has placed
                     if (!this.numOfTurrets[team]) this.numOfTurrets[team] = 0;
                     this.numOfTurrets[team]++;
+
+                    // Initialize the turret state
+                    // Synthesize a turretId as the sequence number in which it was placed
+                    var turretId = (++this.turretIndex);
+                    var [x, y] = location;
+                    this.turretState[turretId] = {
+                        angle: 0,
+                        trackedPlayer: null,
+                        speed: 0,
+                        x: x,
+                        y: y,
+                        forceInit: true      // Force an initial update to the client on this new turret
+                    };
+
+                    // Add the turretId to the model to help the client link and identify which state is associated to it
+                    details.turretId = turretId;
                 }
             }
 
@@ -65,7 +86,8 @@ module.exports = class GameState {
                 objectType: objectType,
                 vetoCount: 0,
                 team: team,
-                ids_who_vetoed: new Set()  // to prevent users from vetoing twice
+                ids_who_vetoed: new Set(),  // to prevent users from vetoing twice
+                details: details
             };
             console.log('added ' + objectType + ': ', location);
         } else {
@@ -108,7 +130,11 @@ module.exports = class GameState {
                 console.log('deleting ', this.selectedObjects[location].objectType, ' at ', location);
 
                 // Update count of relevant objects
-                if (this.selectedObjects[location].objectType === 'turret') this.numOfTurrets[team]--;
+                if (this.selectedObjects[location].objectType === 'turret') {
+                    var turretId = this.selectedObjects[location].details.turretId;
+                    delete this.turretState[turretId];   // clear out the state for the deleted turret
+                    this.numOfTurrets[team]--;
+                }
 
                 delete this.selectedObjects[location];
                 return true;
@@ -121,16 +147,22 @@ module.exports = class GameState {
         var objectStings = Object.keys(this.selectedObjects);
         for (var i = 0; i < objectStings.length; i++) {
             var location = objectStings[i];   // "x,y" (must use strings for the object location as the key into this.selectedObjects)
-            var [x, y] = location.split(",");
-            x = parseInt(x);
-            y = parseInt(y);
-            objects.push({
+            var [x, y] = parseLocation(location);
+
+            var attributes = {
                 x: x,
                 y: y,
                 objectType: this.selectedObjects[location].objectType,
                 vetoCount: this.selectedObjects[location].vetoCount,
                 team: this.selectedObjects[location].team
-            });
+            };
+
+            // Add details object if available
+            if (this.selectedObjects[location].details) {
+                attributes.details = this.selectedObjects[location].details;
+            }
+
+            objects.push(attributes);
         }
 
         return objects;
@@ -148,9 +180,8 @@ module.exports = class GameState {
             var wall = wallStings[i];   // "x,y" (must use strings for the object location as the key into this.selectedObjects)
 
             if (this.selectedObjects[wall].objectType == 'wall') {
-                var [x, y] = wall.split(",");
-                x = parseInt(x);
-                y = parseInt(y);
+                var [x, y] = parseLocation(wall);
+
                 walls.push({
                     x: x,
                     y: y,
@@ -277,4 +308,14 @@ function getValues(o) {
         }
     }
     return values;
+}
+
+// For a locationString in the form "x,y", return a 2-tuple coordinate containing [x,y]
+// (must use strings for the object location as the key into this.selectedObjects)
+function parseLocation(locationString) {
+    var [x, y] = locationString.split(",");
+    x = parseInt(x);
+    y = parseInt(y);
+
+    return [x, y];
 }

@@ -115,11 +115,11 @@ module.exports = {
             // Rotate until an enemy player crosses directly in front of its line of sight
             var start = [turret.x + gameState.gameBlockSize/2, turret.y + gameState.gameBlockSize/2];
             var foundTarget = false;
-            Object.keys(gameState.playerPositions).forEach(playerId => {
+            for (var playerId in gameState.playerPositions) {
                 // Skip this player if this turret already spotted a player or this player isn't an enemy
                 var enemyPlayer = gameState.getPlayerTeam(playerId) !== turret.team;
-                if (foundTarget || !enemyPlayer) {
-                    return;
+                if (!enemyPlayer) {
+                    continue;
                 }
 
                 // If the turret sees a player, fire a bullet and try to track them by rotating in the player's direction
@@ -144,8 +144,9 @@ module.exports = {
 
                     // Stop looking for targets
                     foundTarget = true;
+                    break;
                 }
-            });
+            }
 
             // If no longer on a player, ramp up back to max speed
             if (!foundTarget && Math.abs(turret.speed) < TURRET_SPEED) {

@@ -108,7 +108,7 @@ io.on('connection', function (socket) {
             }
         }
 
-        console.log('gameState.selectedObjects = ', gameState.selectedObjects);
+        // console.log('gameState.selectedObjects = ', gameState.selectedObjects);
 
         io.to(gameId).emit('updateObjects', {
             x: location[0],
@@ -133,6 +133,7 @@ function GameLoop() {
             const [nameToPosition, _] = gameState.getAllPlayers();
             var names = gameState.getPlayerNames();
             io.to(i.toString()).emit('updatePlayerPositions', names, nameToPosition);
+            gameState.Grid.update();
         }
     },
         1000 / 40 /* 40 FPS */);

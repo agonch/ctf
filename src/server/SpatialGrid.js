@@ -47,6 +47,7 @@ class SpatialGrid {
         this.collisionCallback = collisionCallback;
     }
 
+    // Register this entity to be checked for collision detection
     addEntity(dynamic, entity) {
         // check required property (all entities need a bounding box (a SAT shape) for me to detect collisions)
         _.has(entity, 'boundingBox');
@@ -61,13 +62,14 @@ class SpatialGrid {
             this.staticEntities.push(entity);
             var cellsOverlaps;
             var boundingBox = entity.boundingBox;
+
             if (boundingBox instanceof Circle) {
                 cellsOverlaps = this.getCellsCircleOverlaps(boundingBox.pos, boundingBox.r);
             } else {
                 // if here, i will assume boundingBox is of shape SAT.Box
                 cellsOverlaps = this.getCellsBoxOverlaps(boundingBox.pos.x, boundingBox.pos.y, boundingBox.w, boundingBox.h);
-                console.log('for ', boundingBox, ', cells box overlaps = ', cellsOverlaps);
             }
+            console.log('for ', boundingBox, ', cells box overlaps = ', cellsOverlaps);
             cellsOverlaps.forEach(cell => {
                 if (!(cell in this.cellsStaticEntities)) {
                     this.cellsStaticEntities[cell] = [];
@@ -75,6 +77,11 @@ class SpatialGrid {
                 this.cellsStaticEntities[cell].push(entity);
             });
         }
+    }
+
+    // Unregister this entity to be checked for collision detection
+    deleteEntity(entity) {
+        // TODO <----------------
     }
 
     getCellFromWorldPosition(x, y) {
@@ -86,7 +93,7 @@ class SpatialGrid {
     }
 
 
-    // Populate the dynamic entities grid.
+    // Populate the dynamic entities grid. (We call this function every tick() of the Game Loop);
     update() {
         this.cellsDynamicEntities = {};
         for (var i = 0; i < this.dynamicEntities.length; i++) {
@@ -100,7 +107,6 @@ class SpatialGrid {
             } else {
                 cellsOverlaps = this.getCellsBoxOverlaps(boundingBox.pos.x, boundingBox.pos.y, boundingBox.w, boundingBox.h);
             }
-            console.log('for ', boundingBox, ', cellsOverlaps = ', cellsOverlaps);
             cellsOverlaps.forEach(cell => {
                 if (!(cell in this.cellsDynamicEntities)) {
                     this.cellsDynamicEntities[cell] = [];
@@ -108,6 +114,7 @@ class SpatialGrid {
                 this.cellsDynamicEntities[cell].push(entity);
             });
         }
+        this._queryForCollisions();
     }
 
     getCellsBoxOverlaps(x, y, w, h) {
@@ -208,6 +215,7 @@ class SpatialGrid {
 
     _queryForCollisions() {
         const checked = {};
+
         const cells = Object.keys(this.cellsDynamicEntities);
         for (var i = 0; i < cells.length; i++) {
             var dynamicEntities = this.cellsDynamicEntities[cells[i]];
@@ -264,9 +272,8 @@ class SpatialGrid {
         } else {
             collided = SAT.testPolygonPolygon(boundingBoxA.toPolygon(), boundingBoxB.toPolygon());
         }
-        // console.log(entityA, ' and ', entityB, ' collided ? -->', collided);
         if (collided) {
-            this.collisionCallback(entityA, entityB); // let use figure out what to do
+            this.collisionCallback(entityA, entityB); // let user handle collision
         }
     }
 }

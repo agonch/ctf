@@ -29,6 +29,7 @@ module.exports = class GameState {
             'TeamRight': new Set()
         };
         this.playerVelocity = {/* id --> [vel_x, vel_y] */};
+        this.playerShape = {/*id --> SAT polygon Circle */};  // TODO merge all player fields into one object
 
         // Team game world
         this.selectedObjects = {};
@@ -43,21 +44,36 @@ module.exports = class GameState {
             'TeamRight': [[b_w - GameBlockSize, GameBlockSize], [b_w - GameBlockSize, b_h - GameBlockSize]]
         };
         this.pressed = {}; // pressed keys
-        this.Grid = SpatialGrid(GameBlockSize, this.boardSize[0], this.boardSize[1], this.collisionCallback);
+        this.Grid = new SpatialGrid(GameBlockSize, this.boardSize[0], this.boardSize[1], this.collisionCallback);
     }
 
+    /*
+     * While querying for collisions, Grid detected a collision (entityA's and entityB's boundingBoxes overlap).
+     */
     collisionCallback(entityA, entityB) {
-        console.log(entityA, ' and ', entityB, ' collided');
+        console.log(entityA.boundingBox, entityA.objectType,
+            ' COLLIDED WITH ', entityB.boundingBox, entityB.boundingBox);
     }
 
-    addToGrid(entity) {
-        var dynamic = entity.objectType === 'turret' || entity.objectType === 'wall';
-        var shape;
+    /*
+     * Create a boundingBox for this entity and add it to the grid for collision detection querying.
+     */
+    addToGrid(entity, location) {
+        // TODO turret actually has smaller bounding box than wall
+        // also use switch statement for readability
+
         if (entity.objectType === 'turret' || entity.objectType === 'wall') {
-            // TODO turret actually has smaller bounding box than wall
-
-
+            // TODO Box actually uses lower left corner as location (not top left)
+            var pos = [location[0], location[1]];
+            entity.boundingBox = new Box(new Vector(pos[0], pos[1]), this.gameBlockSize, this.gameBlockSize);
+        } else if (entity.objectType === 'player') {
+            entity.boundingBox = new Circle(new Vector(location[0], location[1]), this.gameBlockSize / 2);
+        } else {
+            throw new Error("Unkown object type");
         }
+
+        var isStatic = entity.objectType === 'turret' || entity.objectType === 'wall';
+        this.Grid.addEntity(!isStatic, entity);
     }
 
     // Adds an object to the team (or decrements the veto count).
@@ -81,7 +97,7 @@ module.exports = class GameState {
                 ids_who_vetoed: new Set()  // to prevent users from vetoing twice
             };
             console.log('added object ' + objectType + ': ', location);
-            this.addToGrid(this.selectedObjects[location]);
+            this.addToGrid(this.selectedObjects[location], location);
         } else {
             // object already exists
             // decrease veto count (left clicking on grid decreases its veto count - basically, lets you undo your veto)
@@ -217,6 +233,10 @@ module.exports = class GameState {
         this.playerNames[id] = name;
         this.playerVelocity[id] = [0, 0];
         this.pressed[id] = {'W': false, 'A': false, 'S': false, 'D': false};
+        this.playerShape[id] = {
+            id: id, objectType: 'player'
+        };
+        this.addToGrid(this.playerShape[id], this.playerPositions[id]);
     }
 
     removePlayer(id) {
@@ -230,6 +250,7 @@ module.exports = class GameState {
         } else {
             this.teamToPlayers['TeamRight'].delete(id);
         }
+        delete this.playerShape[id];
     }
 
     /* Given pos is a list [x, y] of player position. Given pos is ignored if player collided
@@ -239,6 +260,8 @@ module.exports = class GameState {
         var y = pos[1];
         var updatePosition = true;
         [x, y] = this.checkBoardEdgeCollision([x, y]);
+        this.playerPositions[id] = [x,y];
+        /*
         updatePosition = this.checkWallCollision(([x, y]));
         if (updatePosition) {
             updatePosition = this.checkPlayerCollision(id, [x, y]);
@@ -246,6 +269,10 @@ module.exports = class GameState {
         if (updatePosition) {
             this.playerPositions[id] = [x, y];
         }
+        */
+
+        this.playerShape[id].boundingBox.pos.x = x;
+        this.playerShape[id].boundingBox.pos.y = y;
     }
 
     /* Returns new player position to prevent them from crossing board edges. */
@@ -268,6 +295,7 @@ module.exports = class GameState {
         return [x, y];
     }
 
+    /*
     checkWallCollision(pos) {
         var walls = this.getAllWalls();
         for (var i = 0; i < walls.length; i++) {
@@ -306,7 +334,7 @@ module.exports = class GameState {
             return (y >= min && y <= max);
         }
     }
-
+    */
 
     getPlayerPosition(id) {
         return this.playerPositions[id];
@@ -336,7 +364,8 @@ module.exports = class GameState {
         return [nameToPos, nameToTeam];
     }
 
-    // TODO move this to gameLogic to avoid duplicated collisison detection
+
+    /*
     checkPlayerCollision(id, pos) {
         var isLeft = this.teamToPlayers['TeamLeft'].has(id);
         var update = true;
@@ -363,6 +392,7 @@ module.exports = class GameState {
         }
         return update;
     }
+    */
 
     /* Updates player position to random spawn point on their team's side. */
     respawn(id) {
@@ -371,10 +401,11 @@ module.exports = class GameState {
         this.playerPositions[id] = spawnPoint;
     }
 
-    /* Using Pythagorean Theorem, returns true if two players collided */
+    /* Using Pythagorean Theorem, returns true if two players collided
     detectCollision(first, second) {
         return Math.sqrt(Math.pow(first[1] - second[1], 2) + Math.pow(first[0] - second[0], 2)) <= (1.0 * GameBlockSize);
     }
+    */
 };
 
 

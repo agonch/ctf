@@ -33,7 +33,7 @@ var Box = SAT.Box; // Note, Boxes are actually rectangles (have width/height)
 class SpatialGrid {
     // Since SAT
 
-    constructor(gameBlockSize, boardWidth, boardHeight) {
+    constructor(gameBlockSize, boardWidth, boardHeight, collisionCallback) {
         this.cellsDynamicEntities = {};
         this.cellsStaticEntities = {};  // these values must be manually updated (otherwise never change)
         this.cellSize = gameBlockSize * 2;
@@ -44,6 +44,7 @@ class SpatialGrid {
         this.maxCell = this.getCellFromWorldPosition(boardWidth - 1, boardHeight - 1); // right most cell
         // TODO make sure when adding entites they do not go above or right of maxCell
         this._hashIdCounter = 0; // for given entities their unique ID
+        this.collisionCallback = collisionCallback;
     }
 
     addEntity(dynamic, entity) {
@@ -209,21 +210,38 @@ class SpatialGrid {
         const checked = {};
         const cells = Object.keys(this.cellsDynamicEntities);
         for (var i = 0; i < cells.length; i++) {
-            var entities = this.cellsDynamicEntities[cells[i]];
+            var dynamicEntities = this.cellsDynamicEntities[cells[i]];
+            var staticEntities;
             if (cells[i] in this.cellsStaticEntities) {
-                entities = entities.concat(this.cellsStaticEntities[cells[i]]);
+                staticEntities = this.cellsStaticEntities[cells[i]];
             }
+            var ent_i, ent_j, hashA, hashB, entityA, entityB;
+
             // for every object in this cell
-            for (var ent_i = 0; ent_i < entities.length; ent_i++) {
-                const entityA = entities[ent_i];
-                // for every other object in the same cell
-                for (var ent_j = ent_i + 1; ent_j < entities.length; ent_j++) {
-                    const entityB = entities[ent_j];
-                    var hashA = entityA._hashId + ':' + entityB._hashId;
-                    var hashB = entityB._hashId + ':' + entityA._hashId;
+            for (ent_i = 0; ent_i < dynamicEntities.length; ent_i++) {
+                entityA = dynamicEntities[ent_i];
+                // for every other (dynamic) object in the same cell
+                for (ent_j = ent_i + 1; ent_j < dynamicEntities.length; ent_j++) {
+                    entityB = dynamicEntities[ent_j];
+                    hashA = entityA._hashId + ':' + entityB._hashId;
+                    hashB = entityB._hashId + ':' + entityA._hashId;
                     if (!checked[hashA] && !checked[hashB]) {
                         checked[hashA] = checked[hashB] = true;
                         this._detectCollision(entityA, entityB);
+                    }
+                }
+
+                // now check if dynamic object collide with any static objects (no point of checking
+                // if static objects collide against with other)
+                if (staticEntities) {
+                    for (ent_j = 0; ent_j < staticEntities.length; ent_j++) {
+                        entityB = staticEntities[ent_j];
+                        hashA = entityA._hashId + ':' + entityB._hashId;
+                        hashB = entityB._hashId + ':' + entityA._hashId;
+                        if (!checked[hashA] && !checked[hashB]) {
+                            checked[hashA] = checked[hashB] = true;
+                            this._detectCollision(entityA, entityB);
+                        }
                     }
                 }
             }
@@ -235,7 +253,7 @@ class SpatialGrid {
         var boundingBoxB = entityB.boundingBox;
         var A_isCircle = boundingBoxA instanceof Circle;
         var B_isCircle = boundingBoxB instanceof Circle;
-        var collided;
+        var collided = false;
 
         if (A_isCircle && B_isCircle) {
             collided = SAT.testCircleCircle(boundingBoxA, boundingBoxB);
@@ -246,7 +264,10 @@ class SpatialGrid {
         } else {
             collided = SAT.testPolygonPolygon(boundingBoxA.toPolygon(), boundingBoxB.toPolygon());
         }
-        console.log(entityA, ' and ', entityB, ' collided ? -->', collided);
+        // console.log(entityA, ' and ', entityB, ' collided ? -->', collided);
+        if (collided) {
+            this.collisionCallback(entityA, entityB); // let use figure out what to do
+        }
     }
 }
 

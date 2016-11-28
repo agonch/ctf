@@ -8,6 +8,7 @@ const MaxTurretsPerTeam = 2;    // TODO: indicate client-side what limits are an
 // # of grid blocks for width and height
 const GridBlockWidth = 20;
 const GridBlockHeight = 10;
+var SpatialGrid = require('./SpatialGrid.js');
 
 /*
  * NOTE: 2 teams, one on left side, and one on right side.
@@ -37,6 +38,11 @@ module.exports = class GameState {
             'TeamRight': [[b_w - GameBlockSize, GameBlockSize], [b_w - GameBlockSize, b_h - GameBlockSize]]
         };
         this.pressed = {}; // pressed keys
+        this.Grid = SpatialGrid(GameBlockSize, this.boardSize[0], this.boardSize[1], this.collisionCallback);
+    }
+
+    collisionCallback(objA, objB) {
+        console.log(objA, ' and ', objB, ' collided');
     }
 
     // Adds an object to the team (or decrements the veto count).

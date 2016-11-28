@@ -357,10 +357,8 @@ class GameView {
     }
 
     _drawBullets(context) {
-        //for (var bullet in this.bulletStates) {
-        Object.keys(this.bulletStates).forEach(bulletId => {
+        for (var bulletId in this.bulletStates) {
             var bullet = this.bulletStates[bulletId];
-            //console.log("  > draw", bulletId, bullet);
             var [bx, by] = this._getLocalCoords(bullet.x, bullet.y);
 
             // Bullet states are outdated by the time we get them
@@ -378,7 +376,7 @@ class GameView {
             this.context.fillStyle = Team_Colors[bullet.team];
             this.context.fill();
             this.context.stroke();
-        });
+        }
     }
 
 }

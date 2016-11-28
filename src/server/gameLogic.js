@@ -1,7 +1,9 @@
 const VELOCITY = 5;
-const TURRET_SPEED = 2;             // rate in degrees/tick at which turrets rotate
-const TURRET_TRIGGER_EPSILON = 1;   // angle in degrees within target before firing
-const TURRET_COOLDOWN = 10;         // number of steps (ticks) to wait before firing again
+const TURRET_SPEED = 2;             // rate in degrees/tick at which turrets rotate, positive
+const TURRET_TRIGGER_EPSILON = TURRET_SPEED + 1;   // angle in degrees within target before firing
+const TURRET_COOLDOWN = 30;         // number of steps (ticks) to wait before firing again
+const BULLET_SPEED = 2;             // speed of bullets fired by turrets
+const BULLET_SIZE = 10;
 
 /* Consider this a static class, with helper methods, for determining gameState updates */
 module.exports = {
@@ -41,8 +43,40 @@ module.exports = {
         });
     },
 
+    // Update bullet position using its velocity
+    // Returns an object containing updated bullet states (empty if none)
     tickBullets : function (gameState) {
-        // for later
+        // Move each bullet along its path
+        Object.keys(gameState.bulletStates).forEach(bulletId => {
+            var bullet = gameState.bulletStates[bulletId];
+            var angle = bullet.angle * Math.PI/180;
+            bullet.x += bullet.speed * Math.cos(angle);
+            bullet.y += bullet.speed * Math.sin(angle);
+
+            // Destroy the bullet if it has moved out of bounds
+            if (gameState.isOutOfBounds(bullet.x, bullet.y)) {
+                gameState.destroyBullet(bulletId);
+            }
+        });
+
+        // Check gameState's bulletUpdates for created/destroyed bullets that need to be sent to clients
+        var updatedBullets = {/* bulletId --> [action, {created bullet state}] */};
+        Object.keys(gameState.bulletUpdates).forEach(bulletId => {
+            var action = gameState.bulletUpdates[bulletId];
+            var state = null;
+
+            if (action === 'create') {
+                state = gameState.bulletStates[bulletId];
+            }
+
+            // Map bulletId to a tuple of [action, state]
+            var tuple = [action, state];
+
+            updatedBullets[bulletId] = tuple;
+        });
+        gameState.bulletUpdates = {};   // Clean out the updates map afterwards
+
+        return updatedBullets;
     },
 
     // Update the turret's angle by a simple AI from each team
@@ -50,55 +84,85 @@ module.exports = {
     tickTurrets : function (gameState) {
         var updatedStates = {/* turretId --> updated turret state */};
 
-        Object.keys(gameState.turretState).forEach(turretId => {
-            var turret = gameState.turretState[turretId];
+        Object.keys(gameState.turretStates).forEach(turretId => {
+            var turret = gameState.turretStates[turretId];
             var updated = false;
+            var originalSpeed = turret.speed;
 
             // Force an initial update to the client
             if (turret.forceInit) {
                 updated = true;
-                delete gameState.turretState[turretId].forceInit;
+                delete turret.forceInit;
             }
 
             // Turret logic
             // Simple logic allow clients to replicate on their side without constant updating,
             //  just update when the logic should change (behavior state, speed, etc.)
             if (turret.speed === 0) {
-                updated = true;
                 turret.speed = TURRET_SPEED;     // Use default if no speed
-                gameState.turretState[turretId].speed = turret.speed;
             }
 
-            // Decrement firing cooldown if necessary
-            if (turret.cooldown && turret.cooldown > 0) {
-                turret.cooldown--;
-            }
-
-            // Rotate counter-clockwise if no tracked player
-            if (!(turret.trackedPlayer && gameState.playerPositions[trackedPlayer])) {
-                gameState.turretState[turretId].angle = (turret.angle + turret.speed + 360) % 360;
+            // Decrement firing cooldown if the turret fired recently
+            if (turret.cooldown !== undefined) {
+                if (turret.cooldown > 0) {
+                    turret.cooldown--;
+                }
             } else {
-                // Otherwise, use a simple AI to rotate towards the tracked player
-                var start = [turret.x, turret.y];
-                var target = gameState.playerPositions[trackedPlayer];
-                var targetAngle = getAngleBetweenPoints(start, target);
-                turret.angle = stepToAngle(start, target, turret.speed);
+                // Add the cooldown property
+                turret.cooldown = TURRET_COOLDOWN;
+            }
 
-                // Fire a bullet
+            // Rotate until an enemy player crosses directly in front of its line of sight
+            var start = [turret.x + gameState.gameBlockSize/2, turret.y + gameState.gameBlockSize/2];
+            var foundTarget = false;
+            Object.keys(gameState.playerPositions).forEach(playerId => {
+                // Skip this player if this turret already spotted a player or this player isn't an enemy
+                var enemyPlayer = gameState.getPlayerTeam(playerId) !== turret.team;
+                if (foundTarget || !enemyPlayer) {
+                    return;
+                }
+
+                // If the turret sees a player, fire a bullet and try to track them by rotating in the player's direction
+                var target = gameState.playerPositions[playerId];
+                var targetAngle = getAngleBetweenPoints(start, target);
                 if (Math.abs(turret.angle - targetAngle) <= TURRET_TRIGGER_EPSILON) {
+                    // Rotate towards the spotted player, stopping on them
+                    var distance = distanceToAngle(turret.angle, targetAngle);
+                    turret.speed = Math.min(Math.abs(distance), TURRET_SPEED) * Math.sign(distance);
+
+                    // Fire a bullet
                     if (turret.cooldown === 0) {
-                        // TODO: Fire a bullet in the angle
+                        // Fire a bullet at the player
+                        var angle = turret.angle * Math.PI/180;
+                        var tipX = start[0] + gameState.gameBlockSize/2 * Math.cos(angle);  // Fire from the tip of the turret
+                        var tipY = start[1] + gameState.gameBlockSize/2 * Math.sin(angle);
+                        gameState.createBullet(tipX, tipY, targetAngle, BULLET_SPEED, BULLET_SIZE, turret.team);
 
                         // Set a cooldown before being able to fire again
                         turret.cooldown = TURRET_COOLDOWN;
-                        gameState.turretState[turretId].cooldown = turret.cooldown;
                     }
+
+                    // Stop looking for targets
+                    foundTarget = true;
                 }
+            });
+
+            // If no longer on a player, ramp up back to max speed
+            if (!foundTarget && Math.abs(turret.speed) < TURRET_SPEED) {
+                turret.speed = TURRET_SPEED * Math.sign(turret.speed);
             }
 
-            // Finish up by adding the entire turret state to be updated
+            // Rotate
+            turret.angle = (turret.angle + turret.speed + 360) % 360;
+
+            // If the turret changed directions, update it to the client
+            if (turret.speed !== originalSpeed) {
+                updated = true;
+            }
+
+            // Finish up by adding the entire turret state to be updated if flagged
             if (updated) {
-                updatedStates[turretId] = gameState.turretState[turretId];
+                updatedStates[turretId] = gameState.turretStates[turretId];
             }
         });
 
@@ -107,21 +171,24 @@ module.exports = {
 };
 
 // Return angle in degrees from p1 to p2, points given as 2-tuple coordinate
+// Range: [0, 360)
 function getAngleBetweenPoints(p1 /*[x,y]*/, p2 /*[x,y]*/) {
-    return Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
+    var [p1x, p1y] = p1;
+    var [p2x, p2y] = p2;
+
+    return (Math.atan2(p2y - p1y, p2x - p1x) * 180 / Math.PI + 360) % 360;
 }
 
-// Given a step size, increment shortest route from start angle to target angle, in degrees
-function stepToAngle(start, target, step) {
-    var angle = start;
-    if (Math.abs(target - angle) <= 180) {
-        // Rotate clockwise
-        angle += step;
-    } else {
-        // Rotate counter-clockwise
-        angle -= step;
-    }
+// Given a start angle and target angle in degrees [0, 360),
+// Return the signed angle distance along the shortest rotation from the start to target
+function distanceToAngle(start, target) {
+    var diff = target - start;
 
-    angle = (angle + 360) % 360;
-    return angle;
+    var d = Math.abs(diff) % 360;
+    var shortestDistance = d > 180 ? 360 - d : d;
+
+    var cw = (diff >= 0 && diff <= 180) || (diff <= -180 && diff >= -360);
+    var shortestDirection = cw ? 1 : -1;
+    
+    return shortestDistance * shortestDirection;
 }

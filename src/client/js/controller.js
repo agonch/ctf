@@ -114,8 +114,31 @@
         socket.on('updateTurrets', function(updatedStates) {
             // updatedStates maps turretId -> turretState
             for (var turretId in updatedStates) {
-                GAME_VIEW.turretState[turretId] = updatedStates[turretId];
+                GAME_VIEW.turretStates[turretId] = updatedStates[turretId];
             }
+        });
+
+        // Triggered when bullets are created and destroyed only
+        socket.on('updateBullets', function(bulletUpdates) {
+            Object.keys(bulletUpdates).forEach(bulletId => {
+                var [action, state] = bulletUpdates[bulletId];
+
+                switch (action) {
+                    case 'create':
+                        // Add the bullet state to the map of bullet states
+                        GAME_VIEW.bulletStates[bulletId] = state;
+                        break;
+
+                    case 'destroy':
+                        // Remove the bullet state
+                        if (GAME_VIEW.bulletStates[bulletId]) {
+                            delete GAME_VIEW.bulletStates[bulletId];
+                        }
+                        break;
+
+                    default: break;
+                }
+            });
         });
     }
 
@@ -186,7 +209,7 @@
                         // Remove object states if they exist
                         if (GAME_VIEW.objectPositions[i].objectType === 'turret') {
                             var turretId = GAME_VIEW.objectPositions[i].details.turretId;
-                            delete GAME_VIEW.turretState[turretId];
+                            delete GAME_VIEW.turretStates[turretId];
                         }
 
                         GAME_VIEW.objectPositions.splice(i, 1);

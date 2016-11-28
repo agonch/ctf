@@ -62,7 +62,8 @@ io.on('connection', function (socket) {
             playerName: name,
             namesToTeams: namesToTeam,
             objectPositions: gameState.getAllObjects(),
-            turretStates: gameState.turretState,
+            turretStates: gameState.turretStates,
+            bulletStates: gameState.bulletStates,
             validObjectTypes: gameState.getValidObjectTypes()  // Tell the player what objects they can build
         };
         // for new player, send game start info
@@ -177,7 +178,14 @@ function GameLoop() {
                 }
             } else {
                 // Resync states completely
-                io.to(gameId).emit('updateTurrets', gameState.turretState);
+                io.to(gameId).emit('updateTurrets', gameState.turretStates);
+            }
+
+            // Update bullet states
+            var updatedBullets = GameLogic.tickBullets(gameState);
+            if (Object.keys(updatedBullets).length) {
+                // Send clients updates only if bullets are created/destroyed
+                io.to(gameId).emit('updateBullets', updatedBullets);
             }
         }
     },

@@ -39,7 +39,7 @@ class GameView {
         // Initialize game values
         const {tickRate, 
             spawnPoint, boardSize, gridSize, playerPositions, playerName, namesToTeams, 
-            objectPositions, turretStates, 
+            objectPositions, turretStates, bulletStates,
             validObjectTypes} = startData;
         TICK_RATE = tickRate;
         GRID_SIZE = gridSize;
@@ -65,7 +65,8 @@ class GameView {
 		this.boardSize = boardSize;
 		this.namesToTeams = namesToTeams; // (ex., "Anton" --> "TeamLeft")
 		this.objectPositions = objectPositions;
-        this.turretState = turretStates; // turretId --> {turret state attributes}
+        this.turretStates = turretStates;   // turretId --> {turret state properties}
+        this.bulletStates = bulletStates;   // bulletId --> {bullet state properties}
 
         // Initialize canvas
         this.initialized = true;
@@ -86,6 +87,7 @@ class GameView {
         this._drawBuildTool();
         this._drawGridLines();
         this._drawPlayers();
+        this._drawBullets();
         this._drawObjects();
 
         this._drawUI();
@@ -321,7 +323,7 @@ class GameView {
                 case 'turret':
                     // Check turretState to get necessary values such as the angle
                     var turretId = this.objectPositions[i].details.turretId;
-                    var turret = this.turretState[turretId];
+                    var turret = this.turretStates[turretId];
 
                     // Skip drawing if we're still waiting on the server to update us with a state
                     if (!turret) {
@@ -352,6 +354,31 @@ class GameView {
             this.context.fillStyle = 'yellow';
             this.context.fillText(vetoCount, x + GRID_SIZE / 2, y + GRID_SIZE / 2);
         }
+    }
+
+    _drawBullets(context) {
+        //for (var bullet in this.bulletStates) {
+        Object.keys(this.bulletStates).forEach(bulletId => {
+            var bullet = this.bulletStates[bulletId];
+            //console.log("  > draw", bulletId, bullet);
+            var [bx, by] = this._getLocalCoords(bullet.x, bullet.y);
+
+            // Bullet states are outdated by the time we get them
+            // But we know the path of the bullet and when it was created,
+            //  so extrapolate its position along its time-parameterized vector
+            var time = Current_Time - bullet.timeCreated;
+            var t = TICK_RATE *  (time / 1000);             // t parameter in steps
+            var angle = bullet.angle * Math.PI/180;
+            var x = bx + (t * bullet.speed * Math.cos(angle));
+            var y = by + (t * bullet.speed * Math.sin(angle));
+
+            // Draw the projectile
+            this.context.beginPath();
+            this.context.arc(x, y, bullet.size, 0, 2*Math.PI);
+            this.context.fillStyle = Team_Colors[bullet.team];
+            this.context.fill();
+            this.context.stroke();
+        });
     }
 
 }

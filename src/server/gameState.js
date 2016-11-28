@@ -28,8 +28,11 @@ module.exports = class GameState {
         // Team game world
         this.selectedObjects = {};
         this.numOfTurrets = {/* team --> turretCount */};
-        this.turretState = {/* turretId --> turret state */};   // turretId formed by nth turret created
+        this.turretStates = {/* turretId --> turret state */};  // turretId formed by nth turret created
         this.turretIndex = -1;  // Sequence index of latest turret created
+        this.bulletStates = {/* bulletId --> bullet state */};  // bulletId formed by nth bullet created
+        this.bulletIndex = -1;  // Sequence index of latest bullet created
+        this.bulletUpdates = {/* bulletId --> create/destroy */}    // tracks state change for bullets
 
         this.gameBlockSize = GameBlockSize;
         this.boardSize = [GridBlockWidth * GameBlockSize, GridBlockHeight * GameBlockSize];
@@ -68,13 +71,14 @@ module.exports = class GameState {
                     // Synthesize a turretId as the sequence number in which it was placed
                     var turretId = (++this.turretIndex);
                     var [x, y] = location;
-                    this.turretState[turretId] = {
-                        angle: -90,             // start turret pointing up
-                        trackedPlayer: null,
+                    this.turretStates[turretId] = {
+                        angle: -90,             // angle in degrees, start turret pointing up
+                        //trackedPlayer: null,
                         speed: 0,
                         x: x,
                         y: y,
-                        forceInit: true      // Force an initial update to the client on this new turret
+                        team: team,
+                        forceInit: true         // Force an initial update to the client on this new turret
                     };
 
                     // Add the turretId to the model to help the client link and identify which state is associated to it
@@ -134,7 +138,7 @@ module.exports = class GameState {
                 // Update count of relevant objects
                 if (this.selectedObjects[location].objectType === 'turret') {
                     var turretId = this.selectedObjects[location].details.turretId;
-                    delete this.turretState[turretId];   // clear out the state for the deleted turret
+                    delete this.turretStates[turretId];   // clear out the state for the deleted turret
                     this.numOfTurrets[team]--;
                 }
 
@@ -142,6 +146,41 @@ module.exports = class GameState {
                 return true;
             }
         }
+    }
+
+    // Creates a bullet with a:
+    //  starting position
+    //  velocity (speed in pixels per step, angle in degrees) 
+    //  projectile size
+    //  team the bullet belongs to
+    // Returns the bulletId
+    createBullet(x, y, angle, speed, size, team) {
+        var bulletId = ++this.bulletIndex;
+
+        // Add the bulletId to the list of bullet updates for the server to propagate back to clients
+        this.bulletUpdates[bulletId] = 'create';
+
+        // Create bullet state
+        this.bulletStates[bulletId] = {
+            x: x,
+            y: y,
+            angle: angle,
+            speed: speed,
+            size: size,
+            team: team,
+            timeCreated: Date.now()     // Enables client to simulate bullet path as a time-parameterized vector
+        };
+
+        return bulletId;
+    }
+
+    // Destroys the bullet with the given bulletId, such as when the bullet collides or goes out-of-bounds
+    destroyBullet(bulletId) {
+        // Add the bulletId to the list of bullet updates for the server to propagate back to clients
+        this.bulletUpdates[bulletId] = 'destroy';
+
+        // Delete bullet state
+        delete this.bulletStates[bulletId];
     }
 
     getAllObjects() {
@@ -198,6 +237,11 @@ module.exports = class GameState {
 
     isFull() {
         return this.numPlayersPresent() >= MaxPlayersPerTeam*2;
+    }
+
+    // Returns true if given x,y coord is outside of the game board
+    isOutOfBounds(x, y) {
+        return (x < 0 || y < 0 || x > this.boardSize[0] || y > this.boardSize[1]);
     }
 
     getPlayerNames() {

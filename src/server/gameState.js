@@ -8,7 +8,12 @@ const MaxTurretsPerTeam = 2;    // TODO: indicate client-side what limits are an
 // # of grid blocks for width and height
 const GridBlockWidth = 20;
 const GridBlockHeight = 10;
+
 var SpatialGrid = require('./SpatialGrid.js');
+var SAT = require('sat');
+var Vector = SAT.Vector;
+var Circle = SAT.Circle;
+var Box = SAT.Box;
 
 /*
  * NOTE: 2 teams, one on left side, and one on right side.
@@ -41,8 +46,18 @@ module.exports = class GameState {
         this.Grid = SpatialGrid(GameBlockSize, this.boardSize[0], this.boardSize[1], this.collisionCallback);
     }
 
-    collisionCallback(objA, objB) {
-        console.log(objA, ' and ', objB, ' collided');
+    collisionCallback(entityA, entityB) {
+        console.log(entityA, ' and ', entityB, ' collided');
+    }
+
+    addToGrid(entity) {
+        var dynamic = entity.objectType === 'turret' || entity.objectType === 'wall';
+        var shape;
+        if (entity.objectType === 'turret' || entity.objectType === 'wall') {
+            // TODO turret actually has smaller bounding box than wall
+
+
+        }
     }
 
     // Adds an object to the team (or decrements the veto count).
@@ -66,6 +81,7 @@ module.exports = class GameState {
                 ids_who_vetoed: new Set()  // to prevent users from vetoing twice
             };
             console.log('added object ' + objectType + ': ', location);
+            this.addToGrid(this.selectedObjects[location]);
         } else {
             // object already exists
             // decrease veto count (left clicking on grid decreases its veto count - basically, lets you undo your veto)

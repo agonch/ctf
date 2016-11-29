@@ -14,6 +14,7 @@ var SAT = require('sat');
 var Vector = SAT.Vector;
 var Circle = SAT.Circle;
 var Box = SAT.Box;
+var assert = require('assert');
 
 /*
  * NOTE: 2 teams, one on left side, and one on right side.
@@ -44,15 +45,7 @@ module.exports = class GameState {
             'TeamRight': [[b_w - GameBlockSize, GameBlockSize], [b_w - GameBlockSize, b_h - GameBlockSize]]
         };
         this.pressed = {}; // pressed keys
-        this.Grid = new SpatialGrid(GameBlockSize, this.boardSize[0], this.boardSize[1], this.collisionCallback);
-    }
-
-    /*
-     * While querying for collisions, Grid detected a collision (entityA's and entityB's boundingBoxes overlap).
-     */
-    collisionCallback(entityA, entityB) {
-        console.log(entityA.boundingBox, entityA.objectType,
-            ' COLLIDED WITH ', entityB.boundingBox, entityB.boundingBox);
+        this.Grid = new SpatialGrid(GameBlockSize, this.boardSize[0], this.boardSize[1], this);
     }
 
     /*
@@ -295,7 +288,7 @@ module.exports = class GameState {
         return [x, y];
     }
 
-    /*
+
     checkWallCollision(pos) {
         var walls = this.getAllWalls();
         for (var i = 0; i < walls.length; i++) {
@@ -334,7 +327,6 @@ module.exports = class GameState {
             return (y >= min && y <= max);
         }
     }
-    */
 
     getPlayerPosition(id) {
         return this.playerPositions[id];
@@ -365,7 +357,6 @@ module.exports = class GameState {
     }
 
 
-    /*
     checkPlayerCollision(id, pos) {
         var isLeft = this.teamToPlayers['TeamLeft'].has(id);
         var update = true;
@@ -392,7 +383,6 @@ module.exports = class GameState {
         }
         return update;
     }
-    */
 
     /* Updates player position to random spawn point on their team's side. */
     respawn(id) {
@@ -401,11 +391,9 @@ module.exports = class GameState {
         this.playerPositions[id] = spawnPoint;
     }
 
-    /* Using Pythagorean Theorem, returns true if two players collided
     detectCollision(first, second) {
         return Math.sqrt(Math.pow(first[1] - second[1], 2) + Math.pow(first[0] - second[0], 2)) <= (1.0 * GameBlockSize);
     }
-    */
 };
 
 

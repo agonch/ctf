@@ -33,7 +33,7 @@ var Box = SAT.Box; // Note, Boxes are actually rectangles (have width/height)
 class SpatialGrid {
     // Since SAT
 
-    constructor(gameBlockSize, boardWidth, boardHeight, collisionCallback) {
+    constructor(gameBlockSize, boardWidth, boardHeight, gameState) {
         this.cellsDynamicEntities = {};
         this.cellsStaticEntities = {};  // these values must be manually updated (otherwise never change)
         this.cellSize = gameBlockSize * 2;
@@ -44,7 +44,7 @@ class SpatialGrid {
         this.maxCell = this.getCellFromWorldPosition(boardWidth - 1, boardHeight - 1); // right most cell
         // TODO make sure when adding entites they do not go above or right of maxCell
         this._hashIdCounter = 0; // for given entities their unique ID
-        this.collisionCallback = collisionCallback;
+        this.gameState = gameState;
     }
 
     // Register this entity to be checked for collision detection
@@ -245,9 +245,8 @@ class SpatialGrid {
                     for (ent_j = 0; ent_j < staticEntities.length; ent_j++) {
                         entityB = staticEntities[ent_j];
                         hashA = entityA._hashId + ':' + entityB._hashId;
-                        hashB = entityB._hashId + ':' + entityA._hashId;
-                        if (!checked[hashA] && !checked[hashB]) {
-                            checked[hashA] = checked[hashB] = true;
+                        if (!checked[hashA]) {
+                            checked[hashA] = true;
                             this._detectCollision(entityA, entityB);
                         }
                     }
@@ -273,8 +272,38 @@ class SpatialGrid {
             collided = SAT.testPolygonPolygon(boundingBoxA.toPolygon(), boundingBoxB.toPolygon());
         }
         if (collided) {
-            this.collisionCallback(entityA, entityB); // let user handle collision
+            this.handleCollision(entityA, entityB);
         }
+    }
+
+    /*
+     * While querying for collisions, Grid detected a collision (entityA's and entityB's boundingBoxes overlap).
+     */
+    handleCollision(entityA, entityB) {
+        var gameState = this.gameState;
+        console.log(entityA.boundingBox, entityA.objectType, 'COLLIDED WITH', entityB.boundingBox, entityB.boundingBox);
+
+        // Player <--> Player    (code originally thanks to Payton)
+        if (entityA.objectType === 'player' && entityB.objectType === 'player') {
+            assert(entityA.id !== entityB.id, 'bug: SpatialGrid should not detect collision with oneself');
+
+            var A_isTeamLeft = gameState.teamToPlayers['TeamLeft'].has(entityA.id);
+            var B_isTeamLeft = gameState.teamToPlayers['TeamLeft'].has(entityB.id);
+            var sameTeam = (A_isTeamLeft === B_isTeamLeft);
+            // var A_pos = gameState.playerPositions[entityA.id];
+            // var B_pos = gameState.playerPositions[entityB.id];
+
+            if (!sameTeam) {
+                gameState.respawn(entityA.id);
+                gameState.respawn(entityB.id);
+            } else {
+                // swap velocities/inertias
+                var tempVel = gameState.playerVelocity[entityA.id];
+                gameState.playerVelocity[entityA.id] = gameState.playerVelocity[entityB.id];
+                gameState.playerVelocity[entityB.id] = tempVel;
+            }
+        }
+
     }
 }
 

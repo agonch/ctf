@@ -133,6 +133,8 @@ function GameLoop() {
             const [nameToPosition, _] = gameState.getAllPlayers();
             var names = gameState.getPlayerNames();
             io.to(i.toString()).emit('updatePlayerPositions', names, nameToPosition);
+
+            // post processing all movement updates, do all collision detection updates
             gameState.Grid.update();
         }
     },

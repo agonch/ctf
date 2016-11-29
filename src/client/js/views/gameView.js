@@ -38,15 +38,17 @@ class GameView {
         this.initialized = true;
 		this.draw();
 
+		this.scale = 1;
         var that = this;
         this.canvas.onmousewheel = function (event){
             var pos = that.players[that.playerName];
             var [x, y] = that._getLocalCoords(pos[0], pos[1]);
             var wheel = event.wheelDelta / 120;
             var zoom = 1 + wheel / 2;
-            that.context.translate(x, y);
+            that.moveCamera(x, y);
             that.context.scale(zoom,zoom);
-            that.context.translate(-x, -y);
+            that.moveCamera(-x, -y);
+            that.scale *= zoom;
         }
 	}
 

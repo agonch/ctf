@@ -45,6 +45,7 @@ class SpatialGrid {
         // TODO make sure when adding entites they do not go above or right of maxCell
         this._hashIdCounter = 0; // for given entities their unique ID
         this.gameState = gameState;
+        this.collisionResponse = new SAT.Response();
     }
 
     // Register this entity to be checked for collision detection
@@ -263,13 +264,13 @@ class SpatialGrid {
         var collided = false;
 
         if (A_isCircle && B_isCircle) {
-            collided = SAT.testCircleCircle(boundingBoxA, boundingBoxB);
+            collided = SAT.testCircleCircle(boundingBoxA, boundingBoxB, this.collisionResponse);
         } else if (!A_isCircle && B_isCircle) {
-            collided = SAT.testPolygonCircle(boundingBoxA.toPolygon(), boundingBoxB);
+            collided = SAT.testPolygonCircle(boundingBoxA.toPolygon(), boundingBoxB, this.collisionResponse);
         } else if (A_isCircle && !B_isCircle) {
-            collided = SAT.testPolygonCircle(boundingBoxB.toPolygon(), boundingBoxA);
+            collided = SAT.testPolygonCircle(boundingBoxB.toPolygon(), boundingBoxA, this.collisionResponse);
         } else {
-            collided = SAT.testPolygonPolygon(boundingBoxA.toPolygon(), boundingBoxB.toPolygon());
+            collided = SAT.testPolygonPolygon(boundingBoxA.toPolygon(), boundingBoxB.toPolygon(), this.collisionResponse);
         }
         if (collided) {
             this.handleCollision(entityA, entityB);
@@ -282,6 +283,8 @@ class SpatialGrid {
     handleCollision(entityA, entityB) {
         var gameState = this.gameState;
         console.log(entityA.boundingBox, entityA.objectType, 'COLLIDED WITH', entityB.boundingBox, entityB.boundingBox);
+
+        // console.log(this.collisionResponse);
 
         // Player <--> Player    (code originally thanks to Payton)
         if (entityA.objectType === 'player' && entityB.objectType === 'player') {
@@ -301,14 +304,13 @@ class SpatialGrid {
                 var tempVel = gameState.playerVelocity[entityA.id];
                 gameState.playerVelocity[entityA.id] = gameState.playerVelocity[entityB.id];
                 gameState.playerVelocity[entityB.id] = tempVel;
+
+                // set positions back to what they were since they collided
+                gameState.updatePlayerPosition(entityA.id, entityA.prevLocation);
+                gameState.updatePlayerPosition(entityB.id, entityB.prevLocation);
             }
         }
-
-        // set positions back to what they were
-        gameState.playerPositions[entityA.id] = entityA.prevLocation;
-        gameState.playerPositions[entityB.id] = entityB.prevLocation;
-
-
+        
     }
 }
 

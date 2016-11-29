@@ -35,12 +35,12 @@ class SpatialGrid {
 
     constructor(gameBlockSize, boardWidth, boardHeight, gameState) {
         this.cellsDynamicEntities = {};
-        this.cellsStaticEntities = {};  // these values must be manually updated (otherwise never change)
-        this.cellSize = gameBlockSize * 2;
-        // I chose above cell size so that all objects do not overlap more than 4 cells ever
+        this.cellsStaticEntities = {};      // these values must be manually updated (otherwise never change)
+        this.cellSize = gameBlockSize * 2;  // we choose cells to be 2 by 2 grid blocks
 
         this.staticEntities = [];
         this.dynamicEntities = [];
+
         this.maxCell = this.getCellFromWorldPosition(boardWidth - 1, boardHeight - 1); // right most cell
         // TODO make sure when adding entites they do not go above or right of maxCell
         this._hashIdCounter = 0; // for given entities their unique ID

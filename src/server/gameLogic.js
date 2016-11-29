@@ -62,6 +62,13 @@ module.exports = {
             var newPos = [];
             newPos[0] = pos[0] + vel[0];
             newPos[1] = pos[1] + vel[1];
+
+            // Set previous location of player in case we detect a collision with anything.
+            // This will allow us to revert the update.
+            gameState.playerShape[id].prevLocation = pos;
+
+            // We go ahead and update the position (for collision detection to detect overlaps).
+            // If no collision, we keep this update.
             gameState.updatePlayerPosition(id, newPos);
         });
     },

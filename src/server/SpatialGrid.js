@@ -304,6 +304,11 @@ class SpatialGrid {
             }
         }
 
+        // set positions back to what they were
+        gameState.playerPositions[entityA.id] = entityA.prevLocation;
+        gameState.playerPositions[entityB.id] = entityB.prevLocation;
+
+
     }
 }
 

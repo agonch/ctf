@@ -282,20 +282,19 @@ class SpatialGrid {
      * While querying for collisions, Grid detected a collision (entityA's and entityB's boundingBoxes overlap).
      */
     handleCollision(entityA, entityB) {
+        console.log(entityA.boundingBox, entityA.objectType, 'COLLIDED WITH',entityB.boundingBox, entityB.boundingBox);
         var gameState = this.gameState;
-        console.log(entityA.boundingBox, entityA.objectType, 'COLLIDED WITH', entityB.boundingBox, entityB.boundingBox);
-
-        console.log('collisionResponse', this.collisionResponse);
+        var overlapV = this.collisionResponse.overlapV;
+        assert(overlapV !== undefined);
 
         // Player <--> Player    (code originally thanks to Payton)
+
         if (entityA.objectType === 'player' && entityB.objectType === 'player') {
             assert(entityA.id !== entityB.id, 'bug: SpatialGrid should not detect collision with oneself');
 
             var A_isTeamLeft = gameState.teamToPlayers['TeamLeft'].has(entityA.id);
             var B_isTeamLeft = gameState.teamToPlayers['TeamLeft'].has(entityB.id);
             var sameTeam = (A_isTeamLeft === B_isTeamLeft);
-            // var A_pos = gameState.playerPositions[entityA.id];
-            // var B_pos = gameState.playerPositions[entityB.id];
 
             if (!sameTeam) {
                 gameState.respawn(entityA.id);
@@ -306,14 +305,6 @@ class SpatialGrid {
                 gameState.playerVelocity[entityA.id] = gameState.playerVelocity[entityB.id];
                 gameState.playerVelocity[entityB.id] = tempVel;
 
-                // Edge case when one person is not moving
-                function notMoving(id) {
-                    return _.isEqual(gameState.playerVelocity[id], [0, 0]);
-                }
-                var overlapV = this.collisionResponse.overlapV;
-                assert(overlapV !== undefined);
-
-
                 var curLoc = gameState.getPlayerPosition(entityB.id);
                 curLoc[0] += overlapV.x / 2;
                 curLoc[1] += overlapV.y / 2;
@@ -322,18 +313,16 @@ class SpatialGrid {
                 curLoc[0] -= overlapV.x / 2;
                 curLoc[1] -= overlapV.y / 2;
                 gameState.updatePlayerPosition(entityA.id, curLoc);
-                /*
-                if (notMoving(entityA.id)) {
-                }
-                else if (notMoving(entityB.id)) {
-                } else {
-                    // set positions back to what they were since they collided
-                    gameState.updatePlayerPosition(entityA.id, entityA.prevLocation);
-                    gameState.updatePlayerPosition(entityB.id, entityB.prevLocation);
-                }*/
             }
         }
-
+        else if (entityA.objectType === 'player'
+            && (entityB.objectType === 'wall' || entityB.objectType === 'turret')) {
+            // note, entityB can never be dynamic
+            var curLoc = gameState.getPlayerPosition(entityA.id);
+            curLoc[0] += overlapV.x;
+            curLoc[1] += overlapV.y;
+            gameState.updatePlayerPosition(entityA.id, curLoc);
+        }
     }
 }
 

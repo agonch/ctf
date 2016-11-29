@@ -163,44 +163,45 @@ function GameLoop() {
 
     GameLoopInterval = setInterval(() => {
         tick = (tick + 1) % TickRate;
-        for(var i = 0; i < lobbyManager.games.length; i++)
-        {
+        for(var i = 0; i < lobbyManager.games.length; i++) {
             var gameId = i.toString();
             var gameState = lobbyManager.games[i];
-            if (gameState !== undefined) {
-                // Update turret states
-                // Accuracy of our timing tends to degrade noticeably past about a second,
-                //  due to unprecise timing on both server/client so resync all states every second
-                var updatedTurretStates = GameLogic.tickTurrets(gameState);
-                if (tick !== 0) {
-                    if (Object.keys(updatedTurretStates).length) {
-                        // Send 'updateTurrets' event only if a state has been updated
-                        io.to(gameId).emit('updateTurrets', updatedTurretStates);
-                    }
-                } else {
-                    // Resync states completely
-                    io.to(gameId).emit('updateTurrets', gameState.turretStates);
-                }
-
-                // Update bullet states
-                var updatedBullets = GameLogic.tickBullets(gameState);
-                if (Object.keys(updatedBullets).length) {
-                    // Send clients updates only if bullets are created/destroyed
-                    io.to(gameId).emit('updateBullets', updatedBullets);
-                }
-
-                GameLogic.tickPlayerPositions(gameState);
-
-                // post processing all movement updates, do all collision detection updates
-                gameState.Grid.update();
-
-                /**
-                 * Get updated values to send to all clients (for this game):
-                 */
-                const [nameToPosition, _] = gameState.getAllPlayers();
-                var names = gameState.getPlayerNames();
-                io.to(gameId).emit('updatePlayerPositions', names, nameToPosition);
+            if (gameState === undefined) {
+                console.log("LOG: gameState undefined, probably because someone left tab open during surver restart");
+                continue;
             }
+            // Update turret states
+            // Accuracy of our timing tends to degrade noticeably past about a second,
+            //  due to unprecise timing on both server/client so resync all states every second
+            var updatedTurretStates = GameLogic.tickTurrets(gameState);
+            if (tick !== 0) {
+                if (Object.keys(updatedTurretStates).length) {
+                    // Send 'updateTurrets' event only if a state has been updated
+                    io.to(gameId).emit('updateTurrets', updatedTurretStates);
+                }
+            } else {
+                // Resync states completely
+                io.to(gameId).emit('updateTurrets', gameState.turretStates);
+            }
+
+            // Update bullet states
+            var updatedBullets = GameLogic.tickBullets(gameState);
+            if (Object.keys(updatedBullets).length) {
+                // Send clients updates only if bullets are created/destroyed
+                io.to(gameId).emit('updateBullets', updatedBullets);
+            }
+
+            GameLogic.tickPlayerPositions(gameState);
+
+            // post processing all movement updates, do all collision detection updates
+            gameState.Grid.update();
+
+            /**
+             * Get updated values to send to all clients (for this game):
+             */
+            const [nameToPosition, _] = gameState.getAllPlayers();
+            var names = gameState.getPlayerNames();
+            io.to(gameId).emit('updatePlayerPositions', names, nameToPosition);
         }
     },
         1000 / TickRate /* TickRate of 40 FPS */);

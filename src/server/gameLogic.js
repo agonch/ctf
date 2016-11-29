@@ -10,23 +10,40 @@ module.exports = {
 
     calculateVelocities(vel_x, vel_y, keysPressed) {
         if (keysPressed['W'] && !keysPressed['S']) {
-            vel_y = -VELOCITY;
+            if (vel_y > -MAX_VEL) {
+                vel_y -= 2.0;
+            }
+
         }
         else if (keysPressed['S'] && !keysPressed['W']) {
-            vel_y = VELOCITY;
+            if (vel_y < MAX_VEL) {
+                vel_y += 2;
+            }
         }
         else {
-            vel_y = 0;
+            if (vel_y > 0) {
+                vel_y-=0.25;
+            } else if (vel_y < 0) {
+                vel_y+=0.25;
+            }
         }
 
         if (keysPressed['A'] && !keysPressed['D']) {
-            vel_x = -VELOCITY;
+            if (vel_x > -MAX_VEL) {
+                vel_x -= 2.0;
+            }
         }
         else if (keysPressed['D'] && !keysPressed['A']) {
-            vel_x = VELOCITY;
+            if (vel_x < MAX_VEL) {
+                vel_x += 2.0;
+            }
         }
         else {
-            vel_x = 0;
+            if (vel_x > 0) {
+                vel_x-=0.25;
+            } else if (vel_x < 0) {
+                vel_x+=0.25;
+            }
         }
 
         return [vel_x, vel_y];
@@ -35,11 +52,17 @@ module.exports = {
     // Using their current velocities, update player positions
     tickPlayerPositions : function (gameState) {
         Object.keys(gameState.playerPositions).forEach(id => {
+
+            var [vel_x, vel_y] = gameState.playerVelocity[id];
+            var keysPressed = gameState.pressed[id];
+            var newVelocities = this.calculateVelocities(vel_x, vel_y, keysPressed);
+            gameState.playerVelocity[id] = newVelocities;
             var pos = gameState.getPlayerPosition(id);
             var vel = gameState.playerVelocity[id];
-            pos[0] += vel[0];
-            pos[1] += vel[1];
-            gameState.updatePlayerPosition(id, pos);
+            var newPos = [];
+            newPos[0] = pos[0] + vel[0];
+            newPos[1] = pos[1] + vel[1];
+            gameState.updatePlayerPosition(id, newPos);
         });
     },
 

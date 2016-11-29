@@ -93,9 +93,7 @@ io.on('connection', function (socket) {
 
     socket.on('updateKeys', function(keysPressed) {
         var [gameState, gameId] = lobbyManager.getGameState(socket.id);
-        var [vel_x, vel_y] = gameState.playerVelocity[socket.id];
-        var newVelocities = GameLogic.calculateVelocities(vel_x, vel_y, keysPressed);
-        gameState.playerVelocity[socket.id] = newVelocities;
+        gameState.pressed[socket.id] = keysPressed;
     });
 
     socket.on('selectObjectLocation', (objectType, location, action) => {
@@ -126,7 +124,7 @@ io.on('connection', function (socket) {
             }
         }
 
-        console.log('gameState.selectedObjects = ', gameState.selectedObjects);
+        // console.log('gameState.selectedObjects = ', gameState.selectedObjects);
 
         var attributes = {
             x: location[0],
@@ -165,6 +163,7 @@ function GameLoop() {
             GameLogic.tickPlayerPositions(gameState);
             const [nameToPosition, _] = gameState.getAllPlayers();
             var names = gameState.getPlayerNames();
+
             io.to(gameId).emit('updatePlayerPositions', names, nameToPosition);
 
             // Update turret states
@@ -187,6 +186,9 @@ function GameLoop() {
                 // Send clients updates only if bullets are created/destroyed
                 io.to(gameId).emit('updateBullets', updatedBullets);
             }
+
+            // post processing all movement updates, do all collision detection updates
+            gameState.Grid.update();
         }
     },
         1000 / TickRate /* TickRate of 40 FPS */);

@@ -322,6 +322,8 @@ class SpatialGrid {
             curLoc[0] += overlapV.x;
             curLoc[1] += overlapV.y;
             gameState.updatePlayerPosition(entityA.id, curLoc);
+        } else if (entityA.objectType === 'player' && entityB.objectType === 'bullet') {
+            gameState.destroyBullet(entityB.bulletId);
         }
     }
 }

@@ -1,4 +1,4 @@
-const VELOCITY = 5;
+const MAX_PERSON_VELOCITY = 5;
 const TURRET_SPEED = 2;             // rate in degrees/tick at which turrets rotate, positive
 const TURRET_TRIGGER_EPSILON = TURRET_SPEED + 1;   // angle in degrees within target before firing
 const TURRET_COOLDOWN = 30;         // number of steps (ticks) to wait before firing again
@@ -10,39 +10,39 @@ module.exports = {
 
     calculateVelocities(vel_x, vel_y, keysPressed) {
         if (keysPressed['W'] && !keysPressed['S']) {
-            if (vel_y > -MAX_VEL) {
+            if (vel_y > -MAX_PERSON_VELOCITY) {
                 vel_y -= 2.0;
             }
 
         }
         else if (keysPressed['S'] && !keysPressed['W']) {
-            if (vel_y < MAX_VEL) {
+            if (vel_y < MAX_PERSON_VELOCITY) {
                 vel_y += 2;
             }
         }
         else {
             if (vel_y > 0) {
-                vel_y-=0.25;
+                vel_y -= 0.25;
             } else if (vel_y < 0) {
-                vel_y+=0.25;
+                vel_y += 0.25;
             }
         }
 
         if (keysPressed['A'] && !keysPressed['D']) {
-            if (vel_x > -MAX_VEL) {
+            if (vel_x > -MAX_PERSON_VELOCITY) {
                 vel_x -= 2.0;
             }
         }
         else if (keysPressed['D'] && !keysPressed['A']) {
-            if (vel_x < MAX_VEL) {
+            if (vel_x < MAX_PERSON_VELOCITY) {
                 vel_x += 2.0;
             }
         }
         else {
             if (vel_x > 0) {
-                vel_x-=0.25;
+                vel_x -= 0.25;
             } else if (vel_x < 0) {
-                vel_x+=0.25;
+                vel_x += 0.25;
             }
         }
 

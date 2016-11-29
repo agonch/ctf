@@ -82,7 +82,44 @@ class SpatialGrid {
 
     // Unregister this entity to be checked for collision detection
     deleteEntity(entity) {
-        // TODO <----------------
+        var objType = entity.objectType;
+        if (objType === 'turret' || objType === 'wall') {
+            this.deleteEntityFromArray(entity, this.staticEntities);
+
+            // remove object from cells (we only do this for static case, since the update()
+            // function is responsible completely for updating cellsDynamicEntities)
+            var cellsOverlaps;
+            var boundingBox = entity.boundingBox;
+            if (boundingBox instanceof Circle) {
+                cellsOverlaps = this.getCellsCircleOverlaps(boundingBox.pos, boundingBox.r);
+            } else {
+                cellsOverlaps = this.getCellsBoxOverlaps(boundingBox.pos.x, boundingBox.pos.y,
+                                                         boundingBox.w, boundingBox.h);
+            }
+            cellsOverlaps.forEach(cell => {
+                assert(cell in this.cellsStaticEntities, 'this entity was not added?');
+                this.deleteEntityFromArray(entity, this.cellsStaticEntities[cell]);
+            });
+        }
+        else if (objType === 'player' || objType === 'bullet') {
+            this.deleteEntityFromArray(entity, this.dynamicEntities);
+        }
+        else {
+            throw new Error("DEBUG: unknown object type");
+        }
+    }
+
+    deleteEntityFromArray(entity, entities) {
+        for (var i = 0; i < entities.length; i++) {
+            if (entities[i]._hashId === entity._hashId) {
+                break;
+            }
+        }
+        if (i >= entities.length) {
+            // never found an entity
+            throw new Error("DEBUG: called deleteEntity on entity never added");
+        }
+        entities.splice(i, 1);
     }
 
     getCellFromWorldPosition(x, y) {
@@ -326,12 +363,6 @@ class SpatialGrid {
             gameState.destroyBullet(entityB.bulletId);
         }
     }
-}
-
-function invertVector(v) {
-    assert(v instanceof Vector);
-    v.x *= -1;
-    v.y *= -1;
 }
 
 module.exports = SpatialGrid;

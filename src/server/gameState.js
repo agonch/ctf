@@ -67,6 +67,8 @@ module.exports = class GameState {
             entity.boundingBox = new Box(new Vector(pos[0], pos[1]), this.gameBlockSize, this.gameBlockSize);
         } else if (entity.objectType === 'player') {
             entity.boundingBox = new Circle(new Vector(location[0], location[1]), this.gameBlockSize / 2);
+        } else if (entity.objectType === 'bullet') {
+            entity.boundingBox = new Circle(new Vector(location[0], location[1]), entity.size);
         } else {
             throw new Error("Unkown object type");
         }
@@ -125,6 +127,7 @@ module.exports = class GameState {
                 details: details
             };
             console.log('added ' + objectType + ': ', location);
+
             // Register object to be queried for collision detection
             this.addToGrid(this.selectedObjects[location], location);
         } else {
@@ -175,6 +178,8 @@ module.exports = class GameState {
                     this.numOfTurrets[team]--;
                 }
 
+                // Un-register object to be queried for collision detection
+                this.Grid.deleteEntity(this.selectedObjects[location]);
                 delete this.selectedObjects[location];
                 return true;
             }
@@ -195,14 +200,18 @@ module.exports = class GameState {
 
         // Create bullet state
         this.bulletStates[bulletId] = {
+            bulletId: bulletId,
+            objectType: 'bullet',
             x: x,
             y: y,
             angle: angle,
             speed: speed,
-            size: size,
+            size: size, // radius
             team: team,
             timeCreated: Date.now()     // Enables client to simulate bullet path as a time-parameterized vector
         };
+        // Register bullet for collision detection
+        this.addToGrid(this.bulletStates[bulletId], [x, y]);
 
         return bulletId;
     }
@@ -211,6 +220,9 @@ module.exports = class GameState {
     destroyBullet(bulletId) {
         // Add the bulletId to the list of bullet updates for the server to propagate back to clients
         this.bulletUpdates[bulletId] = 'destroy';
+
+        // Un-register object to be queried for collision detection
+        this.Grid.deleteEntity(this.bulletStates[bulletId]);
 
         // Delete bullet state
         delete this.bulletStates[bulletId];
@@ -335,6 +347,7 @@ module.exports = class GameState {
         } else {
             this.teamToPlayers['TeamRight'].delete(id);
         }
+        this.Grid.deleteEntity(this.playerShape[id]);
         delete this.playerShape[id];
     }
 

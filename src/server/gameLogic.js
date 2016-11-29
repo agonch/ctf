@@ -3,7 +3,7 @@ const TURRET_SPEED = 2;             // rate in degrees/tick at which turrets rot
 const TURRET_TRIGGER_EPSILON = TURRET_SPEED + 1;   // angle in degrees within target before firing
 const TURRET_COOLDOWN = 30;         // number of steps (ticks) to wait before firing again
 const BULLET_SPEED = 2;             // speed of bullets fired by turrets
-const BULLET_SIZE = 10;
+const BULLET_SIZE = 10;             // radius of bullet
 
 /* Consider this a static class, with helper methods, for determining gameState updates */
 module.exports = {

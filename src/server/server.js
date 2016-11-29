@@ -36,10 +36,13 @@ io.on('connection', function (socket) {
     socket.emit('ack'); // let client know we ready
 
     socket.on('disconnect', function() {
-        var [gameState, gameId] = lobbyManager.getGameState(socket.id);
-        console.log(gameState.getPlayerName(socket.id) + ' has disconnected from the chat.' + socket.id);
-        io.to(gameId).emit('removePlayer', gameState.getPlayerName(socket.id));
-        lobbyManager.deletePlayer(socket.id);
+        var result = lobbyManager.getGameState(socket.id);
+        if (result !== undefined) {
+            var [gameState, gameId] = result;
+            console.log(gameState.getPlayerName(socket.id) + ' has disconnected from the chat.' + socket.id);
+            io.to(gameId).emit('removePlayer', gameState.getPlayerName(socket.id));
+            lobbyManager.deletePlayer(socket.id);
+        }
     });
 
     socket.on('new_game_input', function (newInputData) {
@@ -92,8 +95,11 @@ io.on('connection', function (socket) {
     });
 
     socket.on('updateKeys', function(keysPressed) {
-        var [gameState, gameId] = lobbyManager.getGameState(socket.id);
-        gameState.pressed[socket.id] = keysPressed;
+        var result = lobbyManager.getGameState(socket.id);
+        if (result !== undefined) {
+            var [gameState, gameId] = result;
+            gameState.pressed[socket.id] = keysPressed;
+        }
     });
 
     socket.on('selectObjectLocation', (objectType, location, action) => {

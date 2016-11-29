@@ -357,26 +357,43 @@ class GameView {
     }
 
     _drawBullets(context) {
+        // Clip the bullets with the edge of the game board
+        // Comment this and the bottom line to disable
+        this.context.save();
+        var [x, y] = this._getLocalCoords(0, 0);
+        this.context.beginPath();
+        this.context.rect(x, y, this.boardSize[0], this.boardSize[1]);
+        this.context.clip();
+
         for (var bulletId in this.bulletStates) {
             var bullet = this.bulletStates[bulletId];
-            var [bx, by] = this._getLocalCoords(bullet.x, bullet.y);
 
             // Bullet states are outdated by the time we get them
             // But we know the path of the bullet and when it was created,
-            //  so extrapolate its position along its time-parameterized vector
-            var time = Current_Time - bullet.timeCreated;
+            //  so extrapolate its position along its time-parameterized ray
+            var time = Math.max(0, Current_Time - bullet.timeCreated);
             var t = TICK_RATE *  (time / 1000);             // t parameter in steps
             var angle = bullet.angle * Math.PI/180;
-            var x = bx + (t * bullet.speed * Math.cos(angle));
-            var y = by + (t * bullet.speed * Math.sin(angle));
+            var x = bullet.x + (t * bullet.speed * Math.cos(angle));
+            var y = bullet.y + (t * bullet.speed * Math.sin(angle));
+
+            // Escape and don't draw this bullet if it's projected to be out of bounds
+            // Uncomment to use this instead of clipping (and comment the code outside the for loop)
+            /*if (x < 0 || y < 0 || x > this.boardSize[0] || y > this.boardSize[1]) {
+                continue;
+            }*/
 
             // Draw the projectile
+            var [localX, localY] = this._getLocalCoords(x, y);
             this.context.beginPath();
-            this.context.arc(x, y, bullet.size, 0, 2*Math.PI);
+            this.context.arc(localX, localY, bullet.size, 0, 2*Math.PI);
             this.context.fillStyle = Team_Colors[bullet.team];
             this.context.fill();
             this.context.stroke();
         }
+
+        // Remove the clipping mask
+        this.context.restore();
     }
 
 }

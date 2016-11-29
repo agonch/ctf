@@ -77,10 +77,13 @@ io.on('connection', function (socket) {
     });
 
     socket.on('client_ready', () => {
-        var [gameState, gameId] = lobbyManager.getGameState(socket.id);
-        socket.join(gameId);
-        if (GameLoopInterval === null)
-            GameLoop();
+        var result = lobbyManager.getGameState(socket.id);
+        if (result !== undefined) {
+            var [gameState, gameId] = result;
+            socket.join(gameId);
+            if (GameLoopInterval === null)
+                GameLoop();
+        }
     });
 
     // Client requests to calibrate its local clock with ours
@@ -103,51 +106,54 @@ io.on('connection', function (socket) {
     });
 
     socket.on('selectObjectLocation', (objectType, location, action) => {
-        var [gameState, gameId] = lobbyManager.getGameState(socket.id);
-        location = [location.x, location.y];
-        var vetoCount;
-        var team;
+        var result = lobbyManager.getGameState(socket.id);
+        if (result !== undefined) {
+            var [gameState, gameId] = result;
+            location = [location.x, location.y];
+            var vetoCount;
+            var team;
 
-        if (action === 'select') {
-            var stateChanged = gameState.addObject(objectType, location, socket.id);
-            if (!stateChanged) {
-                return;
-            }
-
-            vetoCount = gameState.selectedObjects[location].vetoCount;
-            team = gameState.getPlayerTeam(socket.id);
-        } else if (action === 'veto') {
-            if (location in gameState.selectedObjects) {
-                var gotDeleted = gameState.incrementVetoCount(location, socket.id);
-                if (gotDeleted) {
-                    vetoCount = -1;
-                } else {
-                    vetoCount = gameState.selectedObjects[location].vetoCount;
-                    team = gameState.getPlayerTeam(socket.id);
+            if (action === 'select') {
+                var stateChanged = gameState.addObject(objectType, location, socket.id);
+                if (!stateChanged) {
+                    return;
                 }
-            } else {
-                return; // user touching object of different team
+
+                vetoCount = gameState.selectedObjects[location].vetoCount;
+                team = gameState.getPlayerTeam(socket.id);
+            } else if (action === 'veto') {
+                if (location in gameState.selectedObjects) {
+                    var gotDeleted = gameState.incrementVetoCount(location, socket.id);
+                    if (gotDeleted) {
+                        vetoCount = -1;
+                    } else {
+                        vetoCount = gameState.selectedObjects[location].vetoCount;
+                        team = gameState.getPlayerTeam(socket.id);
+                    }
+                } else {
+                    return; // user touching object of different team
+                }
             }
+
+            // console.log('gameState.selectedObjects = ', gameState.selectedObjects);
+
+            var attributes = {
+                x: location[0],
+                y: location[1],
+                objectType: objectType,
+                vetoCount: vetoCount,
+                team: team,
+                deleted: vetoCount === -1
+            };
+
+            // Add in an additional sub-object of optional attributes
+            //  if the object still exists and contains a details object
+            if (gameState.selectedObjects[location] && gameState.selectedObjects[location].details) {
+                attributes.details = gameState.selectedObjects[location].details;
+            }
+
+            io.to(gameId).emit('updateObjects', attributes);
         }
-
-        // console.log('gameState.selectedObjects = ', gameState.selectedObjects);
-
-        var attributes = {
-            x: location[0],
-            y: location[1],
-            objectType: objectType,
-            vetoCount: vetoCount,
-            team: team,
-            deleted: vetoCount === -1
-        };
-
-        // Add in an additional sub-object of optional attributes
-        //  if the object still exists and contains a details object
-        if (gameState.selectedObjects[location] && gameState.selectedObjects[location].details) {
-            attributes.details = gameState.selectedObjects[location].details;
-        }
-
-        io.to(gameId).emit('updateObjects', attributes);
     });
 });
 
@@ -161,39 +167,40 @@ function GameLoop() {
         {
             var gameId = i.toString();
             var gameState = lobbyManager.games[i];
-
-            // Update turret states
-            // Accuracy of our timing tends to degrade noticeably past about a second,
-            //  due to unprecise timing on both server/client so resync all states every second
-            var updatedTurretStates = GameLogic.tickTurrets(gameState);
-            if (tick !== 0) {
-                if (Object.keys(updatedTurretStates).length) {
-                    // Send 'updateTurrets' event only if a state has been updated
-                    io.to(gameId).emit('updateTurrets', updatedTurretStates);
+            if (gameState !== undefined) {
+                // Update turret states
+                // Accuracy of our timing tends to degrade noticeably past about a second,
+                //  due to unprecise timing on both server/client so resync all states every second
+                var updatedTurretStates = GameLogic.tickTurrets(gameState);
+                if (tick !== 0) {
+                    if (Object.keys(updatedTurretStates).length) {
+                        // Send 'updateTurrets' event only if a state has been updated
+                        io.to(gameId).emit('updateTurrets', updatedTurretStates);
+                    }
+                } else {
+                    // Resync states completely
+                    io.to(gameId).emit('updateTurrets', gameState.turretStates);
                 }
-            } else {
-                // Resync states completely
-                io.to(gameId).emit('updateTurrets', gameState.turretStates);
+
+                // Update bullet states
+                var updatedBullets = GameLogic.tickBullets(gameState);
+                if (Object.keys(updatedBullets).length) {
+                    // Send clients updates only if bullets are created/destroyed
+                    io.to(gameId).emit('updateBullets', updatedBullets);
+                }
+
+                GameLogic.tickPlayerPositions(gameState);
+
+                // post processing all movement updates, do all collision detection updates
+                gameState.Grid.update();
+
+                /**
+                 * Get updated values to send to all clients (for this game):
+                 */
+                const [nameToPosition, _] = gameState.getAllPlayers();
+                var names = gameState.getPlayerNames();
+                io.to(gameId).emit('updatePlayerPositions', names, nameToPosition);
             }
-
-            // Update bullet states
-            var updatedBullets = GameLogic.tickBullets(gameState);
-            if (Object.keys(updatedBullets).length) {
-                // Send clients updates only if bullets are created/destroyed
-                io.to(gameId).emit('updateBullets', updatedBullets);
-            }
-
-            GameLogic.tickPlayerPositions(gameState);
-
-            // post processing all movement updates, do all collision detection updates
-            gameState.Grid.update();
-
-            /**
-             * Get updated values to send to all clients (for this game):
-             */
-            const [nameToPosition, _] = gameState.getAllPlayers();
-            var names = gameState.getPlayerNames();
-            io.to(gameId).emit('updatePlayerPositions', names, nameToPosition);
         }
     },
         1000 / TickRate /* TickRate of 40 FPS */);

@@ -32,7 +32,7 @@ module.exports = class GameState {
         this.turretIndex = -1;  // Sequence index of latest turret created
         this.bulletStates = {/* bulletId --> bullet state */};  // bulletId formed by nth bullet created
         this.bulletIndex = -1;  // Sequence index of latest bullet created
-        this.bulletUpdates = {/* bulletId --> create/destroy */}    // tracks state change for bullets
+        this.bulletUpdates = {/* bulletId --> create/destroy */};    // tracks state change for bullets
 
         this.gameBlockSize = GameBlockSize;
         this.boardSize = [GridBlockWidth * GameBlockSize, GridBlockHeight * GameBlockSize];

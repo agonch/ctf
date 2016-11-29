@@ -275,6 +275,7 @@ class SpatialGrid {
         if (collided) {
             this.handleCollision(entityA, entityB);
         }
+        this.collisionResponse.clear();
     }
 
     /*
@@ -284,7 +285,7 @@ class SpatialGrid {
         var gameState = this.gameState;
         console.log(entityA.boundingBox, entityA.objectType, 'COLLIDED WITH', entityB.boundingBox, entityB.boundingBox);
 
-        // console.log(this.collisionResponse);
+        console.log('collisionResponse', this.collisionResponse);
 
         // Player <--> Player    (code originally thanks to Payton)
         if (entityA.objectType === 'player' && entityB.objectType === 'player') {
@@ -305,13 +306,33 @@ class SpatialGrid {
                 gameState.playerVelocity[entityA.id] = gameState.playerVelocity[entityB.id];
                 gameState.playerVelocity[entityB.id] = tempVel;
 
-                // set positions back to what they were since they collided
-                gameState.updatePlayerPosition(entityA.id, entityA.prevLocation);
-                gameState.updatePlayerPosition(entityB.id, entityB.prevLocation);
+                // Edge case when one person is not moving
+                function notMoving(id) {
+                    return _.isEqual(gameState.playerVelocity[id], [0, 0]);
+                }
+                var overlapV = this.collisionResponse.overlapV;
+                assert(overlapV !== undefined);
+                if (notMoving(entityA.id)) {
+                    invertVector(overlapV);
+                    entityB.boundingBox.pos.sub(overlapV);
+                }
+                else if (notMoving(entityB.id)) {
+                    entityA.boundingBox.pos.sub(overlapV);
+                } else {
+                    // set positions back to what they were since they collided
+                    gameState.updatePlayerPosition(entityA.id, entityA.prevLocation);
+                    gameState.updatePlayerPosition(entityB.id, entityB.prevLocation);
+                }
             }
         }
-        
+
     }
+}
+
+function invertVector(v) {
+    assert(v instanceof Vector);
+    v.x *= -1;
+    v.y *= -1;
 }
 
 module.exports = SpatialGrid;

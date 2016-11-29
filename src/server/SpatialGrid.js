@@ -312,17 +312,25 @@ class SpatialGrid {
                 }
                 var overlapV = this.collisionResponse.overlapV;
                 assert(overlapV !== undefined);
+
+
+                var curLoc = gameState.getPlayerPosition(entityB.id);
+                curLoc[0] += overlapV.x / 2;
+                curLoc[1] += overlapV.y / 2;
+                gameState.updatePlayerPosition(entityB.id, curLoc);
+                var curLoc = gameState.getPlayerPosition(entityA.id);
+                curLoc[0] -= overlapV.x / 2;
+                curLoc[1] -= overlapV.y / 2;
+                gameState.updatePlayerPosition(entityA.id, curLoc);
+                /*
                 if (notMoving(entityA.id)) {
-                    invertVector(overlapV);
-                    entityB.boundingBox.pos.sub(overlapV);
                 }
                 else if (notMoving(entityB.id)) {
-                    entityA.boundingBox.pos.sub(overlapV);
                 } else {
                     // set positions back to what they were since they collided
                     gameState.updatePlayerPosition(entityA.id, entityA.prevLocation);
                     gameState.updatePlayerPosition(entityB.id, entityB.prevLocation);
-                }
+                }*/
             }
         }
 

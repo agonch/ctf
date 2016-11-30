@@ -391,11 +391,9 @@ class SpatialGrid {
         } else if (entityA.objectType === 'player' && entityB.objectType === 'bullet') {
             this.bulletsToRemove[entityB.bulletId] = ['destroy', entityB];
             gameState.destroyBullet(entityB.bulletId);
-            console.log("BULLETB");
         } else if (entityB.objectType === 'player' && entityA.objectType === 'bullet') {
             this.bulletsToRemove[entityA.bulletId] = ['destroy', entityA];
             gameState.destroyBullet(entityA.bulletId);
-            console.log("BULLETA");
         }
     }
 }

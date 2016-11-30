@@ -194,7 +194,13 @@ function GameLoop() {
             GameLogic.tickPlayerPositions(gameState);
 
             // post processing all movement updates, do all collision detection updates
-            gameState.Grid.update();
+            var [wallsToRemove, bulletsToRemove] = gameState.Grid.update();
+            wallsToRemove.forEach(wall => {
+                io.to(gameId).emit('updateObjects', wall);
+            });
+            if (Object.keys(bulletsToRemove).length) {
+                io.to(gameId).emit('updateBullets', bulletsToRemove);
+            }
 
             /**
              * Get updated values to send to all clients (for this game):

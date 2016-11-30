@@ -52,6 +52,7 @@ module.exports = class GameState {
         };
         this.pressed = {}; // pressed keys
         this.Grid = new SpatialGrid(GameBlockSize, this.boardSize[0], this.boardSize[1], this);
+
     }
 
     /*
@@ -121,10 +122,12 @@ module.exports = class GameState {
 
             this.selectedObjects[location] = {
                 objectType: objectType,
+                location: location,
                 vetoCount: 0,
                 team: team,
                 ids_who_vetoed: new Set(),  // to prevent users from vetoing twice
-                details: details
+                details: details,
+                health: 1000
             };
             console.log('added ' + objectType + ': ', location);
 
@@ -144,6 +147,10 @@ module.exports = class GameState {
         }
 
         return true; // object added
+    }
+
+    removeWall(location) {
+        delete this.selectedObjects[location];
     }
 
     // With the object at the given location, increment its veto count. If veto count >= majority vote, delete it.
@@ -261,11 +268,13 @@ module.exports = class GameState {
     // TODO: Kept for legacy support transitioning from model of walls to generalized model of objects
     getAllWalls() {
         const walls = [];
-        var wallStings = Object.keys(this.selectedObjects);
-        for (var i = 0; i < wallStings.length; i++) {
-            var wall = wallStings[i];   // "x,y" (must use strings for the object location as the key into this.selectedObjects)
+        var wallStrings = Object.keys(this.selectedObjects);
+        console.log("LENGTH: " + wallStrings.length);
+        for (var i = 0; i < wallStrings.length; i++) {
+            var wall = wallStrings[i];   // "x,y" (must use strings for the object location as the key into this.selectedObjects)
 
             if (this.selectedObjects[wall].objectType == 'wall') {
+
                 var [x, y] = parseLocation(wall);
                 walls.push({
                     x: x,

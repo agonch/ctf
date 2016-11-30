@@ -46,6 +46,8 @@ class SpatialGrid {
         this._hashIdCounter = 0; // for given entities their unique ID
         this.gameState = gameState;
         this.collisionResponse = new SAT.Response();
+        this.wallsToRemove = [];
+        this.bulletsToRemove = {};
     }
 
     // Register this entity to be checked for collision detection
@@ -153,6 +155,11 @@ class SpatialGrid {
             });
         }
         this._queryForCollisions();
+        var walls = this.wallsToRemove;
+        this.wallsToRemove = [];
+        var bullets = this.bulletsToRemove;
+        this.bulletsToRemove = {}
+        return [walls, bullets];
     }
 
     getCellsBoxOverlaps(x, y, w, h) {
@@ -319,7 +326,7 @@ class SpatialGrid {
      * While querying for collisions, Grid detected a collision (entityA's and entityB's boundingBoxes overlap).
      */
     handleCollision(entityA, entityB) {
-        console.log(entityA.boundingBox, entityA.objectType, 'COLLIDED WITH',entityB.boundingBox, entityB.boundingBox);
+        //console.log(entityA.boundingBox, entityA.objectType, 'COLLIDED WITH',entityB.boundingBox, entityB.boundingBox);
         var gameState = this.gameState;
         var overlapV = this.collisionResponse.overlapV;
         assert(overlapV !== undefined);
@@ -353,14 +360,40 @@ class SpatialGrid {
             }
         }
         else if (entityA.objectType === 'player'
-            && (entityB.objectType === 'wall' || entityB.objectType === 'turret')) {
+            && entityB.objectType === 'turret') {
             // note, entityB can never be dynamic
             var curLoc = gameState.getPlayerPosition(entityA.id);
             curLoc[0] += overlapV.x;
             curLoc[1] += overlapV.y;
             gameState.updatePlayerPosition(entityA.id, curLoc);
+        } else if (entityA.objectType === 'player' && entityB.objectType === 'wall') {
+            var curLoc = gameState.getPlayerPosition(entityA.id);
+            curLoc[0] += overlapV.x;
+            curLoc[1] += overlapV.y;
+            gameState.updatePlayerPosition(entityA.id, curLoc);
+            entityB.health-=100;
+            console.log("HEALTH: " + entityB.health);
+            if (entityB.health <= 0) {
+                var wall = {
+                    x: entityB.location[0],
+                    y: entityB.location[1],
+                    objectType: entityB.objectType,
+                    vetoCount: -1,
+                    team: null,
+                    deleted: true
+                };
+                this.wallsToRemove.push(wall);
+                gameState.removeWall(entityB.location);
+                this.deleteEntity(entityB);
+            }
         } else if (entityA.objectType === 'player' && entityB.objectType === 'bullet') {
+            this.bulletsToRemove[entityB.bulletId] = ['destroy', entityB];
             gameState.destroyBullet(entityB.bulletId);
+            console.log("BULLETB");
+        } else if (entityB.objectType === 'player' && entityA.objectType === 'bullet') {
+            this.bulletsToRemove[entityA.bulletId] = ['destroy', entityA];
+            gameState.destroyBullet(entityA.bulletId);
+            console.log("BULLETA");
         }
     }
 }

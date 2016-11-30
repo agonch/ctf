@@ -193,7 +193,8 @@ function GameLoop() {
 
             GameLogic.tickPlayerPositions(gameState);
 
-            // post processing all movement updates, do all collision detection updates
+            /* Note, we first 'tick' objects and update their positions, then we do collision
+             * detection. For those objects that collided, we correct their position. */
             var [wallsToRemove, bulletsToRemove] = gameState.Grid.update();
             wallsToRemove.forEach(wall => {
                 io.to(gameId).emit('updateObjects', wall);
@@ -202,9 +203,7 @@ function GameLoop() {
                 io.to(gameId).emit('updateBullets', bulletsToRemove);
             }
 
-            /**
-             * Get updated values to send to all clients (for this game):
-             */
+            // Player positions are now updated and collision corrected.
             const [nameToPosition, _] = gameState.getAllPlayers();
             var names = gameState.getPlayerNames();
             io.to(gameId).emit('updatePlayerPositions', names, nameToPosition);

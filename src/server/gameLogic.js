@@ -64,7 +64,7 @@ module.exports = {
             newPos[1] = pos[1] + vel[1];
             // We go ahead and update the position (for collision detection to detect overlaps).
             // If no collision, we keep this update. Otherwise, collision detection will figure out new position.
-            gameState.updatePlayerPosition(id, newPos);
+            gameState.updatePlayerPosition(id, newPos); // also updates player's bounding box
         });
     },
 
@@ -77,6 +77,10 @@ module.exports = {
             var angle = bullet.angle * Math.PI/180;
             bullet.x += bullet.speed * Math.cos(angle);
             bullet.y += bullet.speed * Math.sin(angle);
+
+            // update Bullet's boundingBox for collision detection to work
+            bullet.boundingBox.pos.x = bullet.x;
+            bullet.boundingBox.pos.y = bullet.y;
 
             // Destroy the bullet if it has moved out of bounds
             if (gameState.isOutOfBounds(bullet.x, bullet.y)) {

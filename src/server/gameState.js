@@ -31,7 +31,7 @@ module.exports = class GameState {
             'TeamRight': new Set()
         };
         this.playerVelocity = {/* id --> [vel_x, vel_y] */};
-        this.playerShape = {/*id --> SAT polygon Circle */};  // TODO merge all player fields into one object
+        this.playerShape = {/*id --> SAT polygon Circle */};
 
         // Team game world
         this.selectedObjects = {};
@@ -52,7 +52,6 @@ module.exports = class GameState {
         };
         this.pressed = {}; // pressed keys
         this.Grid = new SpatialGrid(GameBlockSize, this.boardSize[0], this.boardSize[1], this);
-
     }
 
     /*
@@ -60,12 +59,9 @@ module.exports = class GameState {
      */
     addToGrid(entity, location) {
         // TODO turret actually has smaller bounding box than wall
-        // also use switch statement for readability
-
         if (entity.objectType === 'turret' || entity.objectType === 'wall') {
-            // TODO Box actually uses lower left corner as location (not top left)
-            var pos = [location[0], location[1]];
-            entity.boundingBox = new Box(new Vector(pos[0], pos[1]), this.gameBlockSize, this.gameBlockSize);
+            // note: Box actually uses lower left corner as location (not top left)
+            entity.boundingBox = new Box(new Vector(location[0], location[1]), this.gameBlockSize, this.gameBlockSize);
         } else if (entity.objectType === 'player') {
             entity.boundingBox = new Circle(new Vector(location[0], location[1]), this.gameBlockSize / 2);
         } else if (entity.objectType === 'bullet') {
@@ -274,7 +270,6 @@ module.exports = class GameState {
             var wall = wallStrings[i];   // "x,y" (must use strings for the object location as the key into this.selectedObjects)
 
             if (this.selectedObjects[wall].objectType == 'wall') {
-
                 var [x, y] = parseLocation(wall);
                 walls.push({
                     x: x,
@@ -365,7 +360,6 @@ module.exports = class GameState {
     updatePlayerPosition(id, pos) {
         var x = pos[0];
         var y = pos[1];
-        var updatePosition = true;
         [x, y] = this.checkBoardEdgeCollision([x, y]);
         this.playerPositions[id] = [x,y];
 
@@ -494,7 +488,7 @@ module.exports = class GameState {
     respawn(id) {
         const index = Math.floor(Math.random() * 2);
         const spawnPoint = this.defaultSpawnPoints[this.getPlayerTeam(id)][index];
-        this.playerPositions[id] = spawnPoint;
+        this.updatePlayerPosition(id, spawnPoint);
     }
 
     detectCollision(first, second) {

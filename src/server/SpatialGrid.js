@@ -34,18 +34,19 @@ class SpatialGrid {
     // Since SAT
 
     constructor(gameBlockSize, boardWidth, boardHeight, gameState) {
-        this.cellsDynamicEntities = {};
-        this.cellsStaticEntities = {};      // these values must be manually updated (otherwise never change)
+        this.cellsDynamicEntities = {};     // cells for 'dynamic' objects (only this is updated every tick)
+        this.cellsStaticEntities = {};      // cells for 'static' objects  (not updated every tick)
         this.cellSize = gameBlockSize * 2;  // we choose cells to be 2 by 2 grid blocks
-
         this.staticEntities = [];
         this.dynamicEntities = [];
+        this._hashIdCounter = 0;  // for giving entities their unique ID
+        this.gameState = gameState;
+        this.collisionResponse = new SAT.Response(); // provides collision overlap information
 
         this.maxCell = this.getCellFromWorldPosition(boardWidth - 1, boardHeight - 1); // right most cell
         // TODO make sure when adding entites they do not go above or right of maxCell
-        this._hashIdCounter = 0; // for given entities their unique ID
-        this.gameState = gameState;
-        this.collisionResponse = new SAT.Response();
+
+        // These are updates to send to client if object collide and change state
         this.wallsToRemove = [];
         this.bulletsToRemove = {};
     }
@@ -155,10 +156,11 @@ class SpatialGrid {
             });
         }
         this._queryForCollisions();
+        // Return updates to send to client.
         var walls = this.wallsToRemove;
         this.wallsToRemove = [];
         var bullets = this.bulletsToRemove;
-        this.bulletsToRemove = {}
+        this.bulletsToRemove = {};
         return [walls, bullets];
     }
 
@@ -324,18 +326,18 @@ class SpatialGrid {
 
     /*
      * While querying for collisions, Grid detected a collision (entityA's and entityB's boundingBoxes overlap).
+     * Note, because the queryForCollisions function loops over dynamic entities to check what
+     * they collide with, entityA, which is from outer loop, will always be a dynamic entity.
      */
     handleCollision(entityA, entityB) {
-        //console.log(entityA.boundingBox, entityA.objectType, 'COLLIDED WITH',entityB.boundingBox, entityB.boundingBox);
+        //console.log(entityA.boundingBox, entityA.objectType, 'COLLIDED WITH',entityB.boundingBox, entityB.objectType);
         var gameState = this.gameState;
         var overlapV = this.collisionResponse.overlapV;
         assert(overlapV !== undefined);
 
         // Player <--> Player    (code originally thanks to Payton)
-
         if (entityA.objectType === 'player' && entityB.objectType === 'player') {
-            assert(entityA.id !== entityB.id, 'bug: SpatialGrid should not detect collision with oneself');
-
+            assert(entityA.id !== entityB.id, 'DEBUG: should not detect collision with same player');
             var A_isTeamLeft = gameState.teamToPlayers['TeamLeft'].has(entityA.id);
             var B_isTeamLeft = gameState.teamToPlayers['TeamLeft'].has(entityB.id);
             var sameTeam = (A_isTeamLeft === B_isTeamLeft);
@@ -358,15 +360,15 @@ class SpatialGrid {
                 curLoc[1] -= overlapV.y / 2;
                 gameState.updatePlayerPosition(entityA.id, curLoc);
             }
-        }
-        else if (entityA.objectType === 'player'
-            && entityB.objectType === 'turret') {
+        } else if (entityA.objectType === 'player'
+                && entityB.objectType === 'turret') {
             // note, entityB can never be dynamic
             var curLoc = gameState.getPlayerPosition(entityA.id);
             curLoc[0] += overlapV.x;
             curLoc[1] += overlapV.y;
             gameState.updatePlayerPosition(entityA.id, curLoc);
-        } else if (entityA.objectType === 'player' && entityB.objectType === 'wall') {
+        } else if (entityA.objectType === 'player'
+                && entityB.objectType === 'wall') {
             var curLoc = gameState.getPlayerPosition(entityA.id);
             curLoc[0] += overlapV.x;
             curLoc[1] += overlapV.y;

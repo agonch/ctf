@@ -6,6 +6,9 @@ const GameBlockSize = 50; // in pixels
 const ValidObjectTypes = ['wall', 'turret'];    // Validate objectType sent by client before propagating to other players
 const MaxTurretsPerTeam = 3;    // TODO: indicate client-side what limits are and when they're reached
 
+const MaxPlayerHealth = 5000;
+const MaxWallHealth = 1000;
+
 // # of grid blocks for width and height
 const GridBlockWidth = 20;
 const GridBlockHeight = 10;
@@ -32,6 +35,7 @@ module.exports = class GameState {
         };
         this.playerVelocity = {/* id --> [vel_x, vel_y] */};
         this.playerShape = {/*id --> SAT polygon Circle */};
+        this.playerHealth = {};
 
         // Team game world
         this.selectedObjects = {};
@@ -143,7 +147,7 @@ module.exports = class GameState {
                 team: team,
                 ids_who_vetoed: new Set(),  // to prevent users from vetoing twice
                 details: details,
-                health: 1000
+                health: MaxWallHealth // only walls have health, so if objectType !== wall, ignore health
             };
             console.log('added ' + objectType + ': ', location);
 

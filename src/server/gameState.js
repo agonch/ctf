@@ -1,10 +1,10 @@
 /* Game state for two teams, of 4 players */
 
 // Constants (these values can change later if desired)
-const MaxPlayersPerTeam = 2;
+const MaxPlayersPerTeam = 8; // note, ok to be >= # spawn points
 const GameBlockSize = 50; // in pixels
 const ValidObjectTypes = ['wall', 'turret'];    // Validate objectType sent by client before propagating to other players
-const MaxTurretsPerTeam = 2;    // TODO: indicate client-side what limits are and when they're reached
+const MaxTurretsPerTeam = 3;    // TODO: indicate client-side what limits are and when they're reached
 
 // # of grid blocks for width and height
 const GridBlockWidth = 20;
@@ -46,9 +46,29 @@ module.exports = class GameState {
         this.boardSize = [GridBlockWidth * GameBlockSize, GridBlockHeight * GameBlockSize];
         var [b_w, b_h] = this.boardSize;
         this.defaultSpawnPoints = {
-            // spawn points are top/bottom corners
-            'TeamLeft':  [[GameBlockSize, GameBlockSize], [GameBlockSize, b_h - GameBlockSize]],
-            'TeamRight': [[b_w - GameBlockSize, GameBlockSize], [b_w - GameBlockSize, b_h - GameBlockSize]]
+            // 8 spawn locations per team (4 per corner)
+            'TeamLeft':  [
+                [GameBlockSize/2, GameBlockSize/2],   // top left corner spawns
+                [GameBlockSize*3/2, GameBlockSize/2],
+                [GameBlockSize/2, GameBlockSize*3/2],
+                [GameBlockSize*3/2, GameBlockSize*3/2],
+
+                [GameBlockSize/2, b_h - GameBlockSize*3/2],  // bottom left corner spawns
+                [GameBlockSize*3/2, b_h - GameBlockSize*3/2],
+                [GameBlockSize/2, b_h - GameBlockSize/2],
+                [GameBlockSize*3/2, b_h - GameBlockSize/2]
+            ],
+            'TeamRight': [
+                [b_w - GameBlockSize*3/2, GameBlockSize/2],     // top right corner spawns
+                [b_w - GameBlockSize*3/2, GameBlockSize*3/2],
+                [b_w - GameBlockSize/2, GameBlockSize/2],
+                [b_w - GameBlockSize/2, GameBlockSize*3/2],
+
+                [b_w - GameBlockSize*3/2, b_h - GameBlockSize/2],     // bottom right spawns
+                [b_w - GameBlockSize*3/2, b_h - GameBlockSize*3/2],
+                [b_w - GameBlockSize/2, b_h - GameBlockSize/2],
+                [b_w - GameBlockSize/2, b_h - GameBlockSize*3/2]
+            ]
         };
         this.pressed = {}; // pressed keys
         this.Grid = new SpatialGrid(GameBlockSize, this.boardSize[0], this.boardSize[1], this);
@@ -345,6 +365,7 @@ module.exports = class GameState {
         delete this.playerPositions[id];
         delete this.playerNames[id];
         delete this.playerVelocity[id];
+        delete this.pressed[id];
         // remove name from correct team
         if (this.teamToPlayers['TeamLeft'].has(id)) {
             this.teamToPlayers['TeamLeft'].delete(id);
@@ -388,7 +409,7 @@ module.exports = class GameState {
         return [x, y];
     }
 
-
+    /* DEPRECATED DO NOT USE, USE SPATIAL GRID */
     checkWallCollision(pos) {
         var walls = this.getAllWalls();
         for (var i = 0; i < walls.length; i++) {
@@ -405,6 +426,7 @@ module.exports = class GameState {
         return true;
     }
 
+    /* DEPRECATED DO NOT USE, USE SPATIAL GRID */
     checkIntersection(circleCenter, pointA, pointB) {
         var m = (pointB[1] - pointA[1]) / (pointB[0] - pointA[0]);
         if (m === 0) {
@@ -457,6 +479,7 @@ module.exports = class GameState {
     }
 
 
+    /* DEPRECATED DO NOT USE, USE SPATIAL GRID */
     checkPlayerCollision(id, pos) {
         var isLeft = this.teamToPlayers['TeamLeft'].has(id);
         var update = true;
@@ -486,11 +509,17 @@ module.exports = class GameState {
 
     /* Updates player position to random spawn point on their team's side. */
     respawn(id) {
-        const index = Math.floor(Math.random() * 2);
+        const numSpawnsPerTeam = this.defaultSpawnPoints['TeamLeft'].length;
+        const index = Math.floor(Math.random() * numSpawnsPerTeam);
         const spawnPoint = this.defaultSpawnPoints[this.getPlayerTeam(id)][index];
+        if (spawnPoint === undefined) {
+            console.log('index', index, 'spawnpoint', spawnPoint, this.getPlayerTeam(id));
+            throw new Error("DEBUG spawn point");
+        }
         this.updatePlayerPosition(id, spawnPoint);
     }
 
+    /* DEPRECATED DO NOT USE, USE SPATIAL GRID */
     detectCollision(first, second) {
         return Math.sqrt(Math.pow(first[1] - second[1], 2) + Math.pow(first[0] - second[0], 2)) <= (1.0 * GameBlockSize);
     }

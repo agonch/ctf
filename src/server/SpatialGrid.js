@@ -34,7 +34,7 @@ class SpatialGrid {
     // Since SAT
 
     constructor(gameBlockSize, boardWidth, boardHeight, gameState) {
-        this.cellsDynamicEntities = {};     // cells for 'dynamic' objects (only this is updated every tick)
+        this.cellsDynamicEntities = null;   // cells for 'dynamic' objects (only this is updated every tick)
         this.cellsStaticEntities = {};      // cells for 'static' objects  (not updated every tick)
         this.cellSize = gameBlockSize * 2;  // we choose cells to be 2 by 2 grid blocks
         this.staticEntities = [];
@@ -91,14 +91,7 @@ class SpatialGrid {
 
             // remove object from cells (we only do this for static case, since the update()
             // function is responsible completely for updating cellsDynamicEntities)
-            var cellsOverlaps;
-            var boundingBox = entity.boundingBox;
-            if (boundingBox instanceof Circle) {
-                cellsOverlaps = this.getCellsCircleOverlaps(boundingBox.pos, boundingBox.r);
-            } else {
-                cellsOverlaps = this.getCellsBoxOverlaps(boundingBox.pos.x, boundingBox.pos.y,
-                                                         boundingBox.w, boundingBox.h);
-            }
+            var cellsOverlaps = this.getCellsOverlaps(entity.boundingBox);
             cellsOverlaps.forEach(cell => {
                 assert(cell in this.cellsStaticEntities, 'this entity was not added?');
                 this.deleteEntityFromArray(entity, this.cellsStaticEntities[cell]);
@@ -106,9 +99,26 @@ class SpatialGrid {
         }
         else if (objType === 'player' || objType === 'bullet') {
             this.deleteEntityFromArray(entity, this.dynamicEntities);
+            if (this.cellsDynamicEntities) {
+                // we are mid-update, so we have to remove the deleted colliding entity
+                var cellsOverlaps = this.getCellsOverlaps(entity.boundingBox);
+                cellsOverlaps.forEach(cell => {
+                    assert(cell in this.cellsDynamicEntities, 'this entity was not added?');
+                    this.deleteEntityFromArray(entity, this.cellsDynamicEntities[cell]);
+                });
+            }
         }
         else {
             throw new Error("DEBUG: unknown object type");
+        }
+    }
+
+    getCellsOverlaps(boundingBox) {
+        if (boundingBox instanceof Circle) {
+            return this.getCellsCircleOverlaps(boundingBox.pos.x, boundingBox.pos.y, boundingBox.r);
+        } else {
+            return this.getCellsBoxOverlaps(boundingBox.pos.x, boundingBox.pos.y,
+                                            boundingBox.w, boundingBox.h);
         }
     }
 
@@ -156,6 +166,8 @@ class SpatialGrid {
             });
         }
         this._queryForCollisions();
+        this.cellsDynamicEntities = null;
+
         // Return updates to send to client.
         var walls = this.wallsToRemove;
         this.wallsToRemove = [];

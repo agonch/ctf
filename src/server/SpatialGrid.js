@@ -49,6 +49,7 @@ class SpatialGrid {
         // These are updates to send to client if object collide and change state
         this.wallsToRemove = [];
         this.bulletsToRemove = {};
+        this.healthUpdates = {players: [], walls: []};
     }
 
     // Register this entity to be checked for collision detection
@@ -385,9 +386,11 @@ class SpatialGrid {
             curLoc[0] += overlapV.x;
             curLoc[1] += overlapV.y;
             gameState.updatePlayerPosition(entityA.id, curLoc);
-            entityB.health-=100;
-            console.log("HEALTH: " + entityB.health);
-            if (entityB.health <= 0) {
+            var wallHealth = gameState.wallHealths[entityB.location];
+            wallHealth -= 100;
+            gameState.wallHealths[entityB.location] = wallHealth;
+            console.log("wall health: " + wallHealth);
+            if (wallHealth <= 0) {
                 var wall = {
                     x: entityB.location[0],
                     y: entityB.location[1],
@@ -400,6 +403,12 @@ class SpatialGrid {
                 gameState.removeWall(entityB.location);
                 this.deleteEntity(entityB);
             }
+
+            gameState.playerHealth[entityA.id] -= 100;
+            if (gameState.playerHealth[entityA.id] <= 0) {
+                gameState.respawn(entityA.id); // respawn will max his health
+            }
+
         } else if (entityA.objectType === 'player' && entityB.objectType === 'bullet') {
             this.bulletsToRemove[entityB.bulletId] = ['destroy', entityB];
             gameState.destroyBullet(entityB.bulletId);

@@ -35,9 +35,10 @@ module.exports = class GameState {
         };
         this.playerVelocity = {/* id --> [vel_x, vel_y] */};
         this.playerShape = {/*id --> SAT polygon Circle */};
-        this.playerHealth = {};
+        this.playerHealth = {/* id --> health*/};
 
         // Team game world
+        this.wallHealths = {/*location --> health*/};
         this.selectedObjects = {};
         this.numOfTurrets = {/* team --> turretCount */};
         this.turretStates = {/* turretId --> turret state */};  // turretId formed by nth turret created
@@ -139,15 +140,16 @@ module.exports = class GameState {
                     details.turretId = turretId;
                 }
             }
-
+            if (objectType === 'wall') {
+                this.wallHealths[location] = MaxWallHealth;
+            }
             this.selectedObjects[location] = {
                 objectType: objectType,
                 location: location,
                 vetoCount: 0,
                 team: team,
                 ids_who_vetoed: new Set(),  // to prevent users from vetoing twice
-                details: details,
-                health: MaxWallHealth // only walls have health, so if objectType !== wall, ignore health
+                details: details
             };
             console.log('added ' + objectType + ': ', location);
 
@@ -170,6 +172,7 @@ module.exports = class GameState {
     }
 
     removeWall(location) {
+        delete this.wallHealths[location];
         delete this.selectedObjects[location];
     }
 
@@ -203,6 +206,9 @@ module.exports = class GameState {
                     var turretId = this.selectedObjects[location].details.turretId;
                     delete this.turretStates[turretId];   // clear out the state for the deleted turret
                     this.numOfTurrets[team]--;
+                }
+                if (location in this.wallHealths) {
+                    delete this.wallHealths[location];
                 }
 
                 // Un-register object to be queried for collision detection
@@ -355,6 +361,7 @@ module.exports = class GameState {
         this.playerNames[id] = name;
         this.playerVelocity[id] = [0, 0];
         this.pressed[id] = {'W': false, 'A': false, 'S': false, 'D': false};
+        this.playerHealth[id] = MaxPlayerHealth;
 
         // Register player to be queried for collision detection. playerShape[id] will be the entity used
         // for detecting collision.
@@ -378,6 +385,7 @@ module.exports = class GameState {
         }
         this.Grid.deleteEntity(this.playerShape[id]);
         delete this.playerShape[id];
+        delete this.playerHealth[id];
     }
 
     /* Given pos is a list [x, y] of player position. Given pos is ignored if player collided
@@ -521,6 +529,7 @@ module.exports = class GameState {
             throw new Error("DEBUG spawn point");
         }
         this.updatePlayerPosition(id, spawnPoint);
+        this.playerHealth[id] = MaxPlayerHealth;
     }
 
     /* DEPRECATED DO NOT USE, USE SPATIAL GRID */

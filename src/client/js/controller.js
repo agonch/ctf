@@ -103,9 +103,16 @@
             var clientTime = Date.now();
             var offset = (totalOffset + (serverTime - clientTime)) / 2;
 
+            var firstTimeCalibrating = (TICK_RATE === 0);
             Time_Offset = offset;
             TICK_RATE = averageTickRate;    // Update the tick rate the server is actually updating client at
             LATENCY = totalOffset - offset;
+
+            if (firstTimeCalibrating) {
+                console.log("Client clock ahead of server by about", -Time_Offset, "ms");
+                
+                $('#canvas').trigger('initializeStates');   // use new calibration to correct initial states
+            }
         });
 
         socket.on('updatePlayerPositions', function (names, nameToPosition) {

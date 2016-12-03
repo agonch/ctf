@@ -62,7 +62,6 @@ io.on('connection', function (socket) {
 
         const [namesToPositions, namesToTeam] = gameState.getAllPlayers();
         const startData = {
-            tickRate: TickRate,
             spawnPoint: gameState.getPlayerPosition(socket.id), // initially is default location for new player
             boardSize: gameState.boardSize,
             gridSize: gameState.gameBlockSize,

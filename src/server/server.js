@@ -10,6 +10,10 @@ const LobbyManager = require('./lobbyManager.js');
 const lobbyManager = new LobbyManager();
 
 const TickRate = 40;            // 40 ticks per second (virtual FPS)
+const TickRateAveragingFactor = 1; // How quickly to correct AverageTickRate (1 = immediately) w/ new measurements
+var AverageTickRate = TickRate; // True tick rate (setInterval cannot guarantee exactly the desired tick rate)
+var TickCycleTime = 0;
+
 var GameLoopInterval = null;
 
 http.listen(3000, function() {
@@ -94,7 +98,7 @@ io.on('connection', function (socket) {
         var totalOffset = serverTime - clientTime;
 
         // Continue the calibration response
-        socket.emit('calibrate:respond', serverTime, totalOffset);
+        socket.emit('calibrate:respond', serverTime, totalOffset, AverageTickRate);
     });
 
     socket.on('updateKeys', function(keysPressed) {
@@ -163,6 +167,27 @@ function GameLoop() {
 
     GameLoopInterval = setInterval(() => {
         tick = (tick + 1) % TickRate;
+
+        // Update average tick rate
+        if (tick === 0) {
+            if (TickCycleTime !== 0) {
+                // TickRate # ticks should have been processed in 1 second, but get the true time it took
+                var currentTime = Date.now();
+                var trueProcessingTime = currentTime - TickCycleTime;
+                var newestMeasurement = (TickRate / trueProcessingTime) * 1000;
+
+                // Update average tick rate measurement
+                if (newestMeasurement > 0 && newestMeasurement <= TickRate) {
+                    AverageTickRate *= (1 - TickRateAveragingFactor);
+                    AverageTickRate += TickRateAveragingFactor * newestMeasurement;
+                }
+
+                TickCycleTime = currentTime;
+            } else {
+                TickCycleTime = Date.now();
+            }
+        }
+
         for(var i = 0; i < lobbyManager.games.length; i++) {
             var gameId = i.toString();
             var gameState = lobbyManager.games[i];

@@ -76,11 +76,11 @@
             GAME_VIEW.initializeCanvas(startData);
             
             // Request to calibrate clocks with the server right off the bat
-            // And repeat regularly to make sure there are no irregular changes (whether in clocks or latency)
+            // And repeat regularly to make sure there are no irregular changes (in clocks, latency, or effective tickrate)
             socket.emit('calibrate:start', Date.now());
             setInterval(function() {
                 socket.emit('calibrate:start', Date.now());
-            }, 1000);
+            }, 1500);
 
             socket.emit('client_ready');
         });
@@ -94,7 +94,7 @@
             }
         });
 
-        socket.on('calibrate:respond', function(serverTime, totalOffset) {
+        socket.on('calibrate:respond', function(serverTime, totalOffset, averageTickRate) {
             // Network Time Protocol
             // Separate the latency from the totalOffset of clocks to get the offset of our clock vs. the server
             // offset = ((serverTime - startTime) + (serverTime - clientTime)) / 2,
@@ -104,6 +104,7 @@
             var offset = (totalOffset + (serverTime - clientTime)) / 2;
 
             Time_Offset = offset;
+            TICK_RATE = averageTickRate;    // Update the tick rate the server is actually updating client at
         });
 
         socket.on('updatePlayerPositions', function (names, nameToPosition) {

@@ -99,15 +99,18 @@ class GameView {
         var that = this;
         var $canvas = $('#canvas');
 
-        // Bullet origin is not known mid-flight, so treat the current position as origin and NOW as timeCreated
-        // Wait for controller to tell us to update
         $canvas.on('initializeStates', function() {
+            // Bullet origin is not known mid-flight, so treat the current position as origin and NOW as timeCreated
+            // Wait for controller to tell us to update
             for (var bulletId in that.bulletStates) {
                 var bullet = that.bulletStates[bulletId];
                 if (bullet) {
                     bullet.timeCreated = Date.now() + Time_Offset - LATENCY;
                 }
             }
+
+            // Finished correcting states
+            $canvas.off('initializeStates');
         });
     }
 

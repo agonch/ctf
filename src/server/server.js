@@ -67,7 +67,9 @@ io.on('connection', function (socket) {
             objectPositions: gameState.getAllObjects(),
             turretStates: gameState.turretStates,
             bulletStates: gameState.bulletStates,
-            validObjectTypes: gameState.getValidObjectTypes()  // Tell the player what objects they can build
+            validObjectTypes: gameState.getValidObjectTypes(),  // Tell the player what objects they can build
+            maxWallHealth: gameState.maxWallHealth,
+            maxPlayerHealth: gameState.maxPlayerHealth
         };
         // for new player, send game start info
         socket.emit('initialize_approved', startData);
@@ -195,12 +197,18 @@ function GameLoop() {
 
             /* Note, we first 'tick' objects and update their positions, then we do collision
              * detection. For those objects that collided, we correct their position. */
-            var [wallsToRemove, bulletsToRemove] = gameState.Grid.update();
+            var [wallsToRemove, bulletsToRemove, healthUpdates] = gameState.Grid.update();
             wallsToRemove.forEach(wall => {
                 io.to(gameId).emit('updateObjects', wall);
             });
             if (Object.keys(bulletsToRemove).length) {
                 io.to(gameId).emit('updateBullets', bulletsToRemove);
+            }
+            if (Object.keys(healthUpdates.players).length) {
+                io.to(gameId).emit('updateHealths', 'players', healthUpdates.players);
+            }
+            if (Object.keys(healthUpdates.walls).length) {
+                io.to(gameId).emit('updateHealths', 'walls', healthUpdates.walls);
             }
 
             // Player positions are now updated and collision corrected.

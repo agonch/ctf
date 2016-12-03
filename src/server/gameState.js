@@ -8,6 +8,9 @@ const MaxTurretsPerTeam = 3;    // TODO: indicate client-side what limits are an
 
 const MaxPlayerHealth = 5000;
 const MaxWallHealth = 1000;
+const PlayerWallDamage = MaxPlayerHealth/50;
+const PlayerPlayerDamage = MaxPlayerHealth/2;
+const PlayerBulletDamage = MaxPlayerHealth/5;
 
 // # of grid blocks for width and height
 const GridBlockWidth = 20;
@@ -48,6 +51,11 @@ module.exports = class GameState {
         this.bulletUpdates = {/* bulletId --> create/destroy */};    // tracks state change for bullets
 
         this.gameBlockSize = GameBlockSize;
+        this.maxPlayerHealth = MaxPlayerHealth;
+        this.maxWallHealth = MaxWallHealth;
+        this.playerWallDamage = PlayerWallDamage;
+        this.playerPlayerDamage = PlayerPlayerDamage;
+        this.playerBulletDamage = PlayerBulletDamage;
         this.boardSize = [GridBlockWidth * GameBlockSize, GridBlockHeight * GameBlockSize];
         var [b_w, b_h] = this.boardSize;
         this.defaultSpawnPoints = {
@@ -140,9 +148,7 @@ module.exports = class GameState {
                     details.turretId = turretId;
                 }
             }
-            if (objectType === 'wall') {
-                this.wallHealths[location] = MaxWallHealth;
-            }
+
             this.selectedObjects[location] = {
                 objectType: objectType,
                 location: location,
@@ -152,6 +158,9 @@ module.exports = class GameState {
                 details: details
             };
             console.log('added ' + objectType + ': ', location);
+
+            if (objectType === 'wall')
+                this.wallHealths[location] = MaxWallHealth; // TODO REMOVE THIS
 
             // Register object to be queried for collision detection
             this.addToGrid(this.selectedObjects[location], location);
@@ -207,9 +216,6 @@ module.exports = class GameState {
                     delete this.turretStates[turretId];   // clear out the state for the deleted turret
                     this.numOfTurrets[team]--;
                 }
-                if (location in this.wallHealths) {
-                    delete this.wallHealths[location];
-                }
 
                 // Un-register object to be queried for collision detection
                 this.Grid.deleteEntity(this.selectedObjects[location]);
@@ -217,6 +223,22 @@ module.exports = class GameState {
                 return true;
             }
         }
+    }
+
+    startGame() {
+        // go from build mode to actual game mode
+        // 1. set healths
+        Object.keys(this.selectedObjects).forEach(obj => {
+            if (obj.objectType === 'wall') {
+                this.wallHealths[obj.location] = MaxWallHealth;
+            }
+        });
+        Object.keys(this.playerNames).forEach(id => {
+            this.playerHealth[id] = MaxPlayerHealth;
+        });
+
+        // register static objects for collision detection
+        // TODO
     }
 
     // Creates a bullet with a:
@@ -267,7 +289,6 @@ module.exports = class GameState {
         for (var i = 0; i < objectStings.length; i++) {
             var location = objectStings[i];   // "x,y" (must use strings for the object location as the key into this.selectedObjects)
             var [x, y] = parseLocation(location);
-            // TODO is iterating really necessary, can we not just return this.selectedObjects?
             var attributes = {
                 x: x,
                 y: y,
@@ -291,15 +312,12 @@ module.exports = class GameState {
         return ValidObjectTypes;
     }
 
-    // TODO: Kept for legacy support transitioning from model of walls to generalized model of objects
     getAllWalls() {
         const walls = [];
         var wallStrings = Object.keys(this.selectedObjects);
-        console.log("LENGTH: " + wallStrings.length);
         for (var i = 0; i < wallStrings.length; i++) {
-            var wall = wallStrings[i];   // "x,y" (must use strings for the object location as the key into this.selectedObjects)
-
-            if (this.selectedObjects[wall].objectType == 'wall') {
+            var wall = wallStrings[i];
+            if (this.selectedObjects[wall].objectType === 'wall') {
                 var [x, y] = parseLocation(wall);
                 walls.push({
                     x: x,
@@ -421,47 +439,6 @@ module.exports = class GameState {
         return [x, y];
     }
 
-    /* DEPRECATED DO NOT USE, USE SPATIAL GRID */
-    checkWallCollision(pos) {
-        var walls = this.getAllWalls();
-        for (var i = 0; i < walls.length; i++) {
-            var wall = walls[i];
-            var cornerA = [wall.x, wall.y];
-            var cornerB = [wall.x + GameBlockSize, wall.y];
-            var cornerC = [wall.x + GameBlockSize, wall.y + GameBlockSize];
-            var cornerD = [wall.x, wall.y + GameBlockSize];
-            if (this.checkIntersection(pos, cornerA, cornerB) || this.checkIntersection(pos, cornerB, cornerC)
-                || this.checkIntersection(pos, cornerC, cornerD) || this.checkIntersection(pos, cornerD, cornerA)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /* DEPRECATED DO NOT USE, USE SPATIAL GRID */
-    checkIntersection(circleCenter, pointA, pointB) {
-        var m = (pointB[1] - pointA[1]) / (pointB[0] - pointA[0]);
-        if (m === 0) {
-            var y = pointA[1];
-            if (y <= circleCenter[1] - GameBlockSize / 2 || y >= circleCenter[1] + GameBlockSize / 2) {
-                return false
-            }
-            var x = circleCenter[0];
-            var min = Math.min(pointA[0], pointB[0]);
-            var max = Math.max(pointA[0], pointB[0]);
-            return (x >= min && x <= max);
-        } else {
-            var x = pointA[0];
-            if (x <= circleCenter[0] - GameBlockSize / 2 || x >= circleCenter[0] + GameBlockSize / 2) {
-                return false
-            }
-            var y = circleCenter[1];
-            var min = Math.min(pointA[1], pointB[1]);
-            var max = Math.max(pointA[1], pointB[1]);
-            return (y >= min && y <= max);
-        }
-    }
-
     getPlayerPosition(id) {
         return this.playerPositions[id];
     }
@@ -490,35 +467,6 @@ module.exports = class GameState {
         return [nameToPos, nameToTeam];
     }
 
-
-    /* DEPRECATED DO NOT USE, USE SPATIAL GRID */
-    checkPlayerCollision(id, pos) {
-        var isLeft = this.teamToPlayers['TeamLeft'].has(id);
-        var update = true;
-        const _ids = Object.keys(this.playerPositions);
-        for (var i = 0; i < _ids.length; i++) {
-            const other_id = _ids[i];
-            if (other_id !== id) {
-                var tempPos = this.playerPositions[other_id];
-                var tempTeamLeft = this.teamToPlayers['TeamLeft'].has(other_id);
-                var sameTeam = (isLeft === tempTeamLeft);
-
-                if (this.detectCollision(pos, tempPos)) {
-                    update = false;
-                    if (!sameTeam) {
-                        this.respawn(other_id);
-                        this.respawn(id);
-                    } else {
-                        var tempVel = this.playerVelocity[id];
-                        this.playerVelocity[id] = this.playerVelocity[other_id];
-                        this.playerVelocity[other_id] = tempVel;
-                    }
-                }
-            }
-        }
-        return update;
-    }
-
     /* Updates player position to random spawn point on their team's side. */
     respawn(id) {
         const numSpawnsPerTeam = this.defaultSpawnPoints['TeamLeft'].length;
@@ -532,20 +480,9 @@ module.exports = class GameState {
         this.playerHealth[id] = MaxPlayerHealth;
     }
 
-    /* DEPRECATED DO NOT USE, USE SPATIAL GRID */
-    detectCollision(first, second) {
-        return Math.sqrt(Math.pow(first[1] - second[1], 2) + Math.pow(first[0] - second[0], 2)) <= (1.0 * GameBlockSize);
-    }
 };
 
 // Utility functions \\
-
-function getRandomInt(min, max) {
-    min = Math.ceil(min);
-    max = Math.floor(max);
-    return Math.floor(Math.random() * (max - min)) + min;
-}
-
 function getValues(o) {
     var values = [];
     for (var key in o) {

@@ -49,7 +49,7 @@ class SpatialGrid {
         // These are updates to send to client if object collide and change state
         this.wallsToRemove = [];
         this.bulletsToRemove = {};
-        this.healthUpdates = {players: [], walls: []};
+        this.healthUpdates = {players: {}, walls: {}};
     }
 
     // Register this entity to be checked for collision detection
@@ -170,11 +170,11 @@ class SpatialGrid {
         this.cellsDynamicEntities = null;
 
         // Return updates to send to client.
-        var walls = this.wallsToRemove;
+        const allUpdates = [this.wallsToRemove, this.bulletsToRemove, this.healthUpdates];
         this.wallsToRemove = [];
-        var bullets = this.bulletsToRemove;
         this.bulletsToRemove = {};
-        return [walls, bullets];
+        this.healthUpdates = {players: {}, walls: {}};
+        return allUpdates;
     }
 
     getCellsBoxOverlaps(x, y, w, h) {
@@ -355,11 +355,9 @@ class SpatialGrid {
             var B_isTeamLeft = gameState.teamToPlayers['TeamLeft'].has(entityB.id);
             var sameTeam = (A_isTeamLeft === B_isTeamLeft);
 
-            if (!sameTeam) {
-                gameState.respawn(entityA.id);
-                gameState.respawn(entityB.id);
-            } else {
-                // swap velocities/inertias
+            function swapVelocities() {
+                // swaps the velocities/inertias (simulate a momentum transfer)
+
                 var tempVel = gameState.playerVelocity[entityA.id];
                 gameState.playerVelocity[entityA.id] = gameState.playerVelocity[entityB.id];
                 gameState.playerVelocity[entityB.id] = tempVel;
@@ -372,6 +370,17 @@ class SpatialGrid {
                 curLoc[0] -= overlapV.x / 2;
                 curLoc[1] -= overlapV.y / 2;
                 gameState.updatePlayerPosition(entityA.id, curLoc);
+            }
+            swapVelocities();
+
+            if (!sameTeam) {
+                decreasePlayerHealth(gameState, entityA.id, gameState.playerPlayerDamage);
+                decreasePlayerHealth(gameState, entityB.id, gameState.playerPlayerDamage);
+                // new health values to send to client
+                var nameA = gameState.getPlayerName(entityA.id);
+                var nameB = gameState.getPlayerName(entityB.id);
+                this.healthUpdates.players[nameA] = gameState.playerHealth[entityA.id];
+                this.healthUpdates.players[nameB] = gameState.playerHealth[entityB.id];
             }
         } else if (entityA.objectType === 'player'
                 && entityB.objectType === 'turret') {
@@ -386,8 +395,9 @@ class SpatialGrid {
             curLoc[0] += overlapV.x;
             curLoc[1] += overlapV.y;
             gameState.updatePlayerPosition(entityA.id, curLoc);
+
             var wallHealth = gameState.wallHealths[entityB.location];
-            wallHealth -= 100;
+            wallHealth -= gameState.playerWallDamage;
             gameState.wallHealths[entityB.location] = wallHealth;
             console.log("wall health: " + wallHealth);
             if (wallHealth <= 0) {
@@ -404,18 +414,35 @@ class SpatialGrid {
                 this.deleteEntity(entityB);
             }
 
-            gameState.playerHealth[entityA.id] -= 100;
-            if (gameState.playerHealth[entityA.id] <= 0) {
-                gameState.respawn(entityA.id); // respawn will max his health
-            }
+            decreasePlayerHealth(gameState, entityA.id, gameState.playerWallDamage);
+            // new health values to send to client
+            var name = gameState.getPlayerName(entityA.id);
+            this.healthUpdates.players[name] = gameState.playerHealth[entityA.id];
+            this.healthUpdates.walls[entityB.location] = wallHealth;
 
         } else if (entityA.objectType === 'player' && entityB.objectType === 'bullet') {
             this.bulletsToRemove[entityB.bulletId] = ['destroy', entityB];
             gameState.destroyBullet(entityB.bulletId);
+
+            decreasePlayerHealth(gameState, entityA.id, gameState.playerBulletDamage);
+            var name = gameState.getPlayerName(entityA.id);
+            this.healthUpdates.players[name] = gameState.playerHealth[entityA.id];
+
         } else if (entityB.objectType === 'player' && entityA.objectType === 'bullet') {
             this.bulletsToRemove[entityA.bulletId] = ['destroy', entityA];
             gameState.destroyBullet(entityA.bulletId);
+
+            decreasePlayerHealth(gameState, entityB.id, gameState.playerBulletDamage);
+            var name = gameState.getPlayerName(entityB.id);
+            this.healthUpdates.players[name] = gameState.playerHealth[entityB.id];
         }
+    }
+}
+
+function decreasePlayerHealth(gameState, id, amount) {
+    gameState.playerHealth[id] -= amount;
+    if (gameState.playerHealth[id] <= 0) {
+        gameState.respawn(id); // respawn will max his health
     }
 }
 

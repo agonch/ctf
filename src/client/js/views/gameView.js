@@ -40,7 +40,7 @@ class GameView {
         const {tickRate, 
             spawnPoint, boardSize, gridSize, playerPositions, playerName, namesToTeams, 
             objectPositions, turretStates, bulletStates,
-            validObjectTypes} = startData;
+            validObjectTypes, maxWallHealth, maxPlayerHealth} = startData;
         TICK_RATE = tickRate;
         GRID_SIZE = gridSize;
         Build_Tools = validObjectTypes;
@@ -67,6 +67,9 @@ class GameView {
 		this.objectPositions = objectPositions;
         this.turretStates = turretStates;   // turretId --> {turret state properties}
         this.bulletStates = bulletStates;   // bulletId --> {bullet state properties}
+        this.healthValues = {'players': {/*name --> health*/}, 'walls': {/*pos --> health*/}};
+        this.maxWallHealth = maxWallHealth;
+        this.maxPlayerHealth = maxPlayerHealth;
 
         // Initialize canvas
         this.initialized = true;
@@ -89,8 +92,8 @@ class GameView {
         this._drawPlayers();
         this._drawBullets();
         this._drawObjects();
-
         this._drawUI();
+        this._drawHealths();
     }
 
     _clearCanvas() {
@@ -394,6 +397,41 @@ class GameView {
 
         // Remove the clipping mask
         this.context.restore();
+    }
+
+    _drawHealths() {
+        var darkGray = "#595959";
+        var darkLimeGreen = "#2eb82e";
+        function drawHealthBar(x, y, healthPercent, ctx) {
+            ctx.fillStyle = darkLimeGreen;
+            var total_len = GRID_SIZE;
+            var width = 8;
+            var health_len = total_len * healthPercent;
+            ctx.fillRect(x, y, health_len, width);
+            ctx.fillStyle = darkGray;
+            ctx.fillRect(x + health_len, y, total_len - health_len, width);
+        }
+        function parseLocation(strLocation) {
+            var [x, y] = strLocation.split(",");
+            x = parseInt(x);
+            y = parseInt(y);
+            return [x, y];
+        }
+
+        var health;
+        var bottomPadding = 4;
+        for (var name in this.healthValues['players']) {
+            health = this.healthValues['players'][name];
+            var pos = this.players[name];
+            var [x, y] = this._getLocalCoords(pos[0], pos[1]);
+            drawHealthBar(x - GRID_SIZE/2, y + GRID_SIZE/2 + bottomPadding, health/this.maxPlayerHealth, this.context);
+        }
+        for (var pos in this.healthValues['walls']) {
+            health = this.healthValues['walls'][pos];
+            pos = parseLocation(pos);
+            var [x, y] = this._getLocalCoords(pos[0], pos[1]);
+            drawHealthBar(x, y + GRID_SIZE*3/4, health/this.maxWallHealth, this.context);
+        }
     }
 
 }

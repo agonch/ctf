@@ -142,6 +142,25 @@
         });
     }
 
+    // Update Wall/Player Healths (this gets called during game only, not during build phase)
+    socket.on('updateHealths', function(objType, healthUpdates) {
+        if (!(objType in GAME_VIEW.healthValues))
+            throw new Error('not a valid objType for health: ' + objType);
+        if (objType === 'walls') {
+            Object.keys(healthUpdates).forEach(pos => {
+                if (healthUpdates[pos] <= 0) {
+                    delete GAME_VIEW.healthValues[objType][pos]; // wall has 0 health, server deleted it
+                } else {
+                    GAME_VIEW.healthValues[objType][pos] = healthUpdates[pos];
+                }
+            });
+        } else if (objType === 'players') {
+            Object.keys(healthUpdates).forEach(name => {
+                GAME_VIEW.healthValues[objType][name] = healthUpdates[name];
+            });
+        }
+    });
+
     function setupMouseObjectListener(socket) {
         // When mouse hovers over a grid, gray it out to help client thinking about selecting it
         // If mouse pressed, then send to server selected block (don't draw it out, server must approve

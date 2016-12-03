@@ -80,7 +80,7 @@
             socket.emit('calibrate:start', Date.now());
             setInterval(function() {
                 socket.emit('calibrate:start', Date.now());
-            }, 1500);
+            }, 250);
 
             socket.emit('client_ready');
         });

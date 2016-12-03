@@ -10,9 +10,10 @@ const LobbyManager = require('./lobbyManager.js');
 const lobbyManager = new LobbyManager();
 
 const TickRate = 40;            // 40 ticks per second (virtual FPS)
-const TickRateAveragingFactor = 1; // How quickly to correct AverageTickRate (1 = immediately) w/ new measurements
+const TickRateAveragingFactor = 0.1; // How quickly to correct AverageTickRate (1 = immediately) per TickRate # of ticks
+const TickRateAveragingCycle = 10;   // How many ticks to wait before average (too few and we can't measure precisely)
 var AverageTickRate = TickRate; // True tick rate (setInterval cannot guarantee exactly the desired tick rate)
-var TickCycleTime = 0;
+var TrueTickTime = 0;
 
 var GameLoopInterval = null;
 
@@ -168,25 +169,7 @@ function GameLoop() {
     GameLoopInterval = setInterval(() => {
         tick = (tick + 1) % TickRate;
 
-        // Update average tick rate
-        if (tick === 0) {
-            if (TickCycleTime !== 0) {
-                // TickRate # ticks should have been processed in 1 second, but get the true time it took
-                var currentTime = Date.now();
-                var trueProcessingTime = currentTime - TickCycleTime;
-                var newestMeasurement = (TickRate / trueProcessingTime) * 1000;
-
-                // Update average tick rate measurement
-                if (newestMeasurement > 0 && newestMeasurement <= TickRate) {
-                    AverageTickRate *= (1 - TickRateAveragingFactor);
-                    AverageTickRate += TickRateAveragingFactor * newestMeasurement;
-                }
-
-                TickCycleTime = currentTime;
-            } else {
-                TickCycleTime = Date.now();
-            }
-        }
+        updateAverageTickRate(tick);
 
         for(var i = 0; i < lobbyManager.games.length; i++) {
             var gameId = i.toString();
@@ -237,3 +220,28 @@ function GameLoop() {
         1000 / TickRate /* TickRate of 40 FPS */);
 }
 
+// Update average tick rate given tickIndex [0, TickRate)
+function updateAverageTickRate(tickIndex) {
+    // Update average tick rate continuously
+    if ((tickIndex % TickRateAveragingCycle) === 0) {
+        if (TrueTickTime !== 0) {
+            // AverageTickCycle ticks should have been processed in TickRateAveragingCycle * 1000/TickRate ms,
+            // but get the true time it took:
+            var currentTime = Date.now();
+            var trueProcessingTime = currentTime - TrueTickTime;
+            var newestMeasurement = (TickRateAveragingCycle / trueProcessingTime) * 1000;
+
+            // Update average tick rate measurement
+            if (newestMeasurement > 0 && newestMeasurement <= TickRateAveragingCycle*1000/TickRate) {
+                // keep averaging rate maximum over 1 cycle of TICK_RATE ticks
+                var alpha = Math.min(1, TickRateAveragingFactor / (TickRate / TickRateAveragingCycle));
+
+                AverageTickRate = (1 - alpha) * AverageTickRate + alpha * newestMeasurement;
+            }
+
+            TrueTickTime = currentTime;
+        } else {
+            TrueTickTime = Date.now();
+        }
+    }
+}

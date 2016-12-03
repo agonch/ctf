@@ -21,6 +21,7 @@ var Time_Deficit = 0;       // Deficit in rendering on-time with Time to make up
 var Step_Deficit = 0;       // Number of virtual steps (approximates the number of ticks the server would have performed on its end)    
 
 var TICK_RATE = 40;         // Get the server's processing rate to simulate locally
+var LATENCY = 0;            // Estimate one-way latency between server-client communication
 var GRID_SIZE = 50;
 var Build_Tools = [];       // let the server set this when initializing
 
@@ -67,6 +68,7 @@ class GameView {
 		this.objectPositions = objectPositions;
         this.turretStates = turretStates;   // turretId --> {turret state properties}
         this.bulletStates = bulletStates;   // bulletId --> {bullet state properties}
+        this.initializeStates();
 
         // Initialize canvas
         this.initialized = true;
@@ -91,6 +93,16 @@ class GameView {
         this._drawObjects();
 
         this._drawUI();
+    }
+
+    // Fix outdated properties in states passed by server during initialization
+    // Tied closely to how server processes states
+    initializeStates() {
+        // Bullet origin is not known mid-flight, so treat the current position as origin and NOW as timeCreated
+        for (var bulletId in this.bulletStates) {
+            var bullet = this.bulletStates[bulletId];
+            bullet.timeCreated = Date.now() - LATENCY;
+        }
     }
 
     _clearCanvas() {

@@ -105,6 +105,7 @@
 
             Time_Offset = offset;
             TICK_RATE = averageTickRate;    // Update the tick rate the server is actually updating client at
+            LATENCY = totalOffset - offset;
         });
 
         socket.on('updatePlayerPositions', function (names, nameToPosition) {

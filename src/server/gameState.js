@@ -6,11 +6,13 @@ const GameBlockSize = 50; // in pixels
 const ValidObjectTypes = ['wall', 'turret'];    // Validate objectType sent by client before propagating to other players
 const MaxTurretsPerTeam = 3;    // TODO: indicate client-side what limits are and when they're reached
 
-const MaxPlayerHealth = 5000;
-const MaxWallHealth = 1000;
-const PlayerWallDamage = MaxPlayerHealth/50;
-const PlayerPlayerDamage = MaxPlayerHealth/2;
-const PlayerBulletDamage = MaxPlayerHealth/5;
+// Constants for SpatialGrid to use to update health in case of collisions
+const MaxPlayerHealth = 50000;
+const MaxWallHealth = 10000;
+const WallToPlayerDamage = MaxPlayerHealth/200; // set to 0 if don't want walls to hurt you
+const PlayerToWallDamage = MaxWallHealth/20;    // how much damage players make on walls (increase for difficulty)
+const PlayerPlayerDamage = MaxPlayerHealth/2;   // players collision (with enemy only) does 50% damage
+const PlayerBulletDamage = MaxPlayerHealth/5;   // bullets do 20% damage
 
 // # of grid blocks for width and height
 const GridBlockWidth = 20;
@@ -53,7 +55,8 @@ module.exports = class GameState {
         this.gameBlockSize = GameBlockSize;
         this.maxPlayerHealth = MaxPlayerHealth;
         this.maxWallHealth = MaxWallHealth;
-        this.playerWallDamage = PlayerWallDamage;
+        this.playerToWallDamage = PlayerToWallDamage;
+        this.wallToPlayerDamage = WallToPlayerDamage;
         this.playerPlayerDamage = PlayerPlayerDamage;
         this.playerBulletDamage = PlayerBulletDamage;
         this.boardSize = [GridBlockWidth * GameBlockSize, GridBlockHeight * GameBlockSize];

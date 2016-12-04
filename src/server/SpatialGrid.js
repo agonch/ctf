@@ -42,9 +42,7 @@ class SpatialGrid {
         this._hashIdCounter = 0;  // for giving entities their unique ID
         this.gameState = gameState;
         this.collisionResponse = new SAT.Response(); // provides collision overlap information
-
         this.maxCell = this.getCellFromWorldPosition(boardWidth - 1, boardHeight - 1); // right most cell
-        // TODO make sure when adding entites they do not go above or right of maxCell
 
         // These are updates to send to client if object collide and change state
         this.wallsToRemove = [];
@@ -55,7 +53,7 @@ class SpatialGrid {
     // Register this entity to be checked for collision detection
     addEntity(dynamic, entity) {
         // check required property (all entities need a bounding box (a SAT shape) for me to detect collisions)
-        _.has(entity, 'boundingBox');
+        assert(_.has(entity, 'boundingBox'), 'missing boundingBox: ' + entity);
         if ((!entity.boundingBox instanceof Circle) || (!entity.boundingBox instanceof Box)) {
             throw new Error("For now Grid only supports circle and box collision detection");
         }
@@ -100,18 +98,11 @@ class SpatialGrid {
         }
         else if (objType === 'player' || objType === 'bullet') {
             this.deleteEntityFromArray(entity, this.dynamicEntities);
-            if (this.cellsDynamicEntities) {
-                // we are mid-update, so we have to remove the deleted colliding entity
-                var cellsOverlaps = this.getCellsOverlaps(entity.boundingBox);
-                cellsOverlaps.forEach(cell => {
-                    assert(cell in this.cellsDynamicEntities, 'this entity was not added?');
-                    this.deleteEntityFromArray(entity, this.cellsDynamicEntities[cell]);
-                });
-            }
         }
         else {
             throw new Error("DEBUG: unknown object type");
         }
+        entity.deleted = true;
     }
 
     getCellsOverlaps(boundingBox) {
@@ -316,6 +307,10 @@ class SpatialGrid {
     }
 
     _detectCollision(entityA, entityB) {
+        if (entityA.deleted || entityB.deleted) {
+            // entity was deleted mid-update (for example a bullet).
+            return;
+        }
         var boundingBoxA = entityA.boundingBox;
         var boundingBoxB = entityB.boundingBox;
         var A_isCircle = boundingBoxA instanceof Circle;
@@ -343,7 +338,7 @@ class SpatialGrid {
      * they collide with, entityA, which is from outer loop, will always be a dynamic entity.
      */
     handleCollision(entityA, entityB) {
-        //console.log(entityA.boundingBox, entityA.objectType, 'COLLIDED WITH',entityB.boundingBox, entityB.objectType);
+        console.log(entityA, 'COLLIDED WITH',entityB);
         var gameState = this.gameState;
         var overlapV = this.collisionResponse.overlapV;
         assert(overlapV !== undefined);
@@ -397,9 +392,8 @@ class SpatialGrid {
             gameState.updatePlayerPosition(entityA.id, curLoc);
 
             var wallHealth = gameState.wallHealths[entityB.location];
-            wallHealth -= gameState.playerWallDamage;
+            wallHealth -= gameState.playerToWallDamage;
             gameState.wallHealths[entityB.location] = wallHealth;
-            console.log("wall health: " + wallHealth);
             if (wallHealth <= 0) {
                 var wall = {
                     x: entityB.location[0],
@@ -414,7 +408,7 @@ class SpatialGrid {
                 this.deleteEntity(entityB);
             }
 
-            decreasePlayerHealth(gameState, entityA.id, gameState.playerWallDamage);
+            decreasePlayerHealth(gameState, entityA.id, gameState.wallToPlayerDamage);
             // new health values to send to client
             var name = gameState.getPlayerName(entityA.id);
             this.healthUpdates.players[name] = gameState.playerHealth[entityA.id];
@@ -435,6 +429,10 @@ class SpatialGrid {
             decreasePlayerHealth(gameState, entityB.id, gameState.playerBulletDamage);
             var name = gameState.getPlayerName(entityB.id);
             this.healthUpdates.players[name] = gameState.playerHealth[entityB.id];
+
+        } else if (entityA.objectType === 'bullet' && entityB.objectType === 'wall') {
+            this.bulletsToRemove[entityA.bulletId] = ['destroy', entityA];
+            gameState.destroyBullet(entityA.bulletId);
         }
     }
 }

@@ -1,8 +1,8 @@
 const MAX_PERSON_VELOCITY = 5;
 const TURRET_SPEED = 2;             // rate in degrees/tick at which turrets rotate, positive
 const TURRET_TRIGGER_EPSILON = TURRET_SPEED + 1;   // angle in degrees within target before firing
-const TURRET_COOLDOWN = 30;         // number of steps (ticks) to wait before firing again
-const BULLET_SPEED = 2;             // speed of bullets fired by turrets
+const TURRET_COOLDOWN = 50;         // number of steps (ticks) to wait before firing again
+const BULLET_SPEED = 6;             // speed of bullets fired by turrets
 const BULLET_SIZE = 10;             // radius of bullet
 
 /* Consider this a static class, with helper methods, for determining gameState updates */

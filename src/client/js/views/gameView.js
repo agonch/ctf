@@ -20,7 +20,8 @@ var Time_Offset = 0;        // Local computer time offset against the server to 
 var Time_Deficit = 0;       // Deficit in rendering on-time with Time to make up with next draw
 var Step_Deficit = 0;       // Number of virtual steps (approximates the number of ticks the server would have performed on its end)    
 
-var TICK_RATE = 40;         // Get the server's processing rate to simulate locally
+var TICK_RATE = 0;          // Get the server's processing rate to simulate locally (0 at start -> client is not calibrated yet)
+var LATENCY = 0;            // Estimate one-way latency between server-client communication
 var GRID_SIZE = 50;
 var Build_Tools = [];       // let the server set this when initializing
 
@@ -37,11 +38,10 @@ class GameView {
 		this.context = canvas.getContext("2d");
 
         // Initialize game values
-        const {tickRate, 
-            spawnPoint, boardSize, gridSize, playerPositions, playerName, namesToTeams, 
+        const {spawnPoint, boardSize, gridSize, playerPositions, playerName, namesToTeams, 
             objectPositions, turretStates, bulletStates,
             validObjectTypes, maxWallHealth, maxPlayerHealth} = startData;
-        TICK_RATE = tickRate;
+
         GRID_SIZE = gridSize;
         Build_Tools = validObjectTypes;
         Start_Time = Date.now();        // Client local time when created
@@ -67,13 +67,16 @@ class GameView {
 		this.objectPositions = objectPositions;
         this.turretStates = turretStates;   // turretId --> {turret state properties}
         this.bulletStates = bulletStates;   // bulletId --> {bullet state properties}
+
         this.healthValues = {'players': {/*name --> health*/}, 'walls': {/*pos --> health*/}};
         this.maxWallHealth = maxWallHealth;
         this.maxPlayerHealth = maxPlayerHealth;
 
+        this.initializeStates();
+
         // Initialize canvas
         this.initialized = true;
-		this.draw();
+        this.draw();
 	}
 
     draw() {
@@ -94,6 +97,27 @@ class GameView {
         this._drawObjects();
         this._drawUI();
         this._drawHealths();
+    }
+
+    // Fix outdated properties in states passed by server during initialization
+    // Tied closely to how server processes states
+    initializeStates() {
+        var that = this;
+        var $canvas = $('#canvas');
+
+        $canvas.on('initializeStates', function() {
+            // Bullet origin is not known mid-flight, so treat the current position as origin and NOW as timeCreated
+            // Wait for controller to tell us to update
+            for (var bulletId in that.bulletStates) {
+                var bullet = that.bulletStates[bulletId];
+                if (bullet) {
+                    bullet.timeCreated = Date.now() + Time_Offset - LATENCY;
+                }
+            }
+
+            // Finished correcting states
+            $canvas.off('initializeStates');
+        });
     }
 
     _clearCanvas() {

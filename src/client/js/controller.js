@@ -74,7 +74,14 @@
             setupMouseObjectListener(socket);
             console.log('initializing Canvas with --> ', JSON.stringify(startData, null, 4));
             GAME_VIEW.initializeCanvas(startData);
-            socket.emit('calibrate:start');     // Request to calibrate clocks with the server right off the bat
+            
+            // Request to calibrate clocks with the server right off the bat
+            // And repeat regularly to make sure there are no irregular changes (in clocks, latency, or effective tickrate)
+            socket.emit('calibrate:start', Date.now());
+            setInterval(function() {
+                socket.emit('calibrate:start', Date.now());
+            }, 250);
+
             socket.emit('client_ready');
         });
 
@@ -87,18 +94,25 @@
             }
         });
 
-        socket.on('calibrate:respond', function(serverTime, totalOffset) {
+        socket.on('calibrate:respond', function(serverTime, totalOffset, averageTickRate) {
             // Network Time Protocol
             // Separate the latency from the totalOffset of clocks to get the offset of our clock vs. the server
             // offset = ((serverTime - startTime) + (serverTime - clientTime)) / 2,
-            //  where startTime was client's time at calibrate:start
+            //  where startTime was client's time at 'calibrate:start' (serverTime-totalOffset), therefore:
             // offset = (totalOffset + (serverTime - clientTime)) / 2
             var clientTime = Date.now();
-            var responseDiff = clientTime - serverTime;
             var offset = (totalOffset + (serverTime - clientTime)) / 2;
 
+            var firstTimeCalibrating = (TICK_RATE === 0);
             Time_Offset = offset;
-            console.log("Client clock ahead of server by", -Time_Offset, "ms");
+            TICK_RATE = averageTickRate;    // Update the tick rate the server is actually updating client at
+            LATENCY = totalOffset - offset;
+
+            if (firstTimeCalibrating) {
+                console.log("Client clock ahead of server by about", -Time_Offset, "ms");
+                
+                $('#canvas').trigger('initializeStates');   // use new calibration to correct initial states
+            }
         });
 
         socket.on('updatePlayerPositions', function (names, nameToPosition) {

@@ -368,14 +368,21 @@ class SpatialGrid {
             }
             swapVelocities();
 
-            if (!sameTeam && !this.gameState.buildPhase) {
-                decreasePlayerHealth(gameState, entityA.id, gameState.playerPlayerDamage);
-                decreasePlayerHealth(gameState, entityB.id, gameState.playerPlayerDamage);
-                // new health values to send to client
-                var nameA = gameState.getPlayerName(entityA.id);
-                var nameB = gameState.getPlayerName(entityB.id);
-                this.healthUpdates.players[nameA] = gameState.playerHealth[entityA.id];
-                this.healthUpdates.players[nameB] = gameState.playerHealth[entityB.id];
+            if (!sameTeam && !gameState.buildPhase) {
+                var sideA = gameState.getLocationSide(gameState.getPlayerPosition(entityA.id));
+                var sideB = gameState.getLocationSide(gameState.getPlayerPosition(entityA.id));
+                if ((A_isTeamLeft && sideA !== "TeamLeft") || (!A_isTeamLeft && sideA === "TeamLeft")) {
+                    decreasePlayerHealth(gameState, entityA.id, gameState.playerPlayerDamage);
+                    var nameA = gameState.getPlayerName(entityA.id);
+                    this.healthUpdates.players[nameA] = gameState.playerHealth[entityA.id];
+                }
+
+                if ((B_isTeamLeft && sideB !== "TeamLeft") || (!B_isTeamLeft && sideB === "TeamLeft")) {
+                    decreasePlayerHealth(gameState, entityB.id, gameState.playerPlayerDamage);
+                    // new health values to send to client
+                    var nameB = gameState.getPlayerName(entityB.id);
+                    this.healthUpdates.players[nameB] = gameState.playerHealth[entityB.id];
+                }
             }
         } else if (entityA.objectType === 'player'
                 && entityB.objectType === 'turret') {

@@ -436,7 +436,7 @@ class SpatialGrid {
         } else if (entityA.objectType === 'flag' && entityB.objectType === 'player') {
             gameState.playerTouchedFlag(entityB.id, entityA.team);
         } else if (entityA.objectType === 'player' && entityB.objectType === 'flag') {
-            gameState.playerTouchedFlag(entityA.id, entityA.team)
+            gameState.playerTouchedFlag(entityA.id, entityB.team)
         } else if (entityA.objectType === 'flag' && entityB.objectType === 'flagBase') {
             gameState.flagTouchedFlagBase(entityA.team, entityB.team);
         }

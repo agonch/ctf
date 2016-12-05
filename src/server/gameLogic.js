@@ -197,6 +197,12 @@ module.exports = {
         });
 
         return updatedStates;
+    },
+
+    tickFlagPositions: function(gameState) {
+        Object.keys(gameState.flags).forEach(flagTeam => {
+            gameState.updateFlagPosition(flagTeam);
+        });
     }
 };
 

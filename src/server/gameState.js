@@ -430,6 +430,7 @@ module.exports = class GameState {
     }
 
     addFlags() {
+        console.log("Here");
         this.addToGrid(this.flags['TeamRight'], this.flagSpawnPoints['TeamRight']);
         this.addToGrid(this.flags['TeamLeft'], this.flagSpawnPoints['TeamLeft']);
     }
@@ -469,19 +470,34 @@ module.exports = class GameState {
         this.playerShape[id].boundingBox.pos.y = y;
     }
 
+    updateFlagPosition(flagTeam) {
+        // If the flag is currently captured, then make it appear on top of the captor
+        if (this.flags[flagTeam].captor !== null) {
+            this.flags[flagTeam].location = this.getPlayerPosition(this.flags[flagTeam].captor);
+        } else {
+            this.flags[flagTeam].location = this.flagSpawnPoints[flagTeam];
+        }
+    }
+
     playerTouchedFlag(playerId, flagTeam) {
+        console.log("flagteam: " + flagTeam);
+        // If a player touches his own flag and it's currently captured
+        if (this.getPlayerTeam(playerId) === flagTeam && this.flags[flagTeam].captor !== null) {
+            this.flags[flagTeam].captor = null;
+            this.flags[flagTeam].location = this.flagSpawnPoints[flagTeam];
+        }
         // If the player touched the enemy flag and it was in its flagbase
-        if(this.getPlayerTeam(playerId) !== flagTeam && this.flags[flagTeam] === this.flagSpawnPoints[flagTeam]) {
+        if (this.getPlayerTeam(playerId) !== flagTeam && this.flags[flagTeam].location === this.flagSpawnPoints[flagTeam]) {
             this.flags[flagTeam].captor = playerId;
         }
     }
 
     flagTouchedFlagBase(flagTeam, flagBaseTeam) {
-        // If a flag touches the enemy flagbase and someone is currently the captor
+        // If a flag touches the enemy flagbase
         if (flagTeam !== flagBaseTeam && this.flags[flagTeam].captor !== null) {
-            // Give the right team a point and reset the flag fields
             this.points[flagBaseTeam]++;
             this.flags[flagTeam].captor = null;
+            this.flags[flagTeam].location = this.flagSpawnPoints[flagTeam];
         }
     }
 
@@ -531,6 +547,20 @@ module.exports = class GameState {
             }
         }
         return [nameToPos, nameToTeam];
+    }
+
+    getFlagPositions() {
+        return {
+            'TeamRight': this.flags['TeamRight'].location,
+            'TeamLeft': this.flags['TeamLeft'].location
+        };
+    }
+
+    getFlagBasePositions() {
+        return {
+            'TeamRight': this.flagSpawnPoints['TeamRight'],
+            'TeamLeft': this.flagSpawnPoints['TeamLeft']
+        };
     }
 
     /* Updates player position to random spawn point on their team's side. */

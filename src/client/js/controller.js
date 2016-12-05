@@ -124,6 +124,12 @@
             GAME_VIEW.draw();
         });
 
+        socket.on('updateFlagPositions', function (flagPositions) {
+            Object.keys(flagPositions).forEach(flagTeam => {
+                GAME_VIEW.setFlagLocation(flagTeam, flagPositions[flagTeam])
+            });
+        });
+
         // Triggered when turrets have changed behavioral states, syncing all attributes back to the server's
         socket.on('updateTurrets', function(updatedStates) {
             // updatedStates maps turretId -> turretState

@@ -73,7 +73,8 @@ io.on('connection', function (socket) {
             bulletStates: gameState.bulletStates,
             validObjectTypes: gameState.getValidObjectTypes(),  // Tell the player what objects they can build
             maxWallHealth: gameState.maxWallHealth,
-            maxPlayerHealth: gameState.maxPlayerHealth
+            maxPlayerHealth: gameState.maxPlayerHealth,
+            buildCountdown: gameState.buildCountdown
         };
         // for new player, send game start info
         socket.emit('initialize_approved', startData);
@@ -216,6 +217,10 @@ function GameLoop() {
             }
             if (Object.keys(healthUpdates.walls).length) {
                 io.to(gameId).emit('updateHealths', 'walls', healthUpdates.walls);
+            }
+            if (!gameState.buildPhase && !gameState.started) {
+                io.to(gameId).emit('startGame', gameState.gameCountdown);
+                gameState.started = true;
             }
 
             // Player positions are now updated and collision corrected.

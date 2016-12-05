@@ -368,7 +368,7 @@ class SpatialGrid {
             }
             swapVelocities();
 
-            if (!sameTeam) {
+            if (!sameTeam && !this.gameState.buildPhase) {
                 decreasePlayerHealth(gameState, entityA.id, gameState.playerPlayerDamage);
                 decreasePlayerHealth(gameState, entityB.id, gameState.playerPlayerDamage);
                 // new health values to send to client
@@ -391,9 +391,11 @@ class SpatialGrid {
             curLoc[1] += overlapV.y;
             gameState.updatePlayerPosition(entityA.id, curLoc);
 
-            var wallHealth = gameState.wallHealths[entityB.location];
-            wallHealth -= gameState.playerToWallDamage;
-            gameState.wallHealths[entityB.location] = wallHealth;
+            if (!this.gameState.buildPhase) {
+                var wallHealth = gameState.wallHealths[entityB.location];
+                wallHealth -= gameState.playerToWallDamage;
+                gameState.wallHealths[entityB.location] = wallHealth;
+            }
             if (wallHealth <= 0) {
                 var wall = {
                     x: entityB.location[0],
@@ -407,8 +409,9 @@ class SpatialGrid {
                 gameState.removeWall(entityB.location);
                 this.deleteEntity(entityB);
             }
-
-            decreasePlayerHealth(gameState, entityA.id, gameState.wallToPlayerDamage);
+            if (!this.gameState.buildPhase) {
+                decreasePlayerHealth(gameState, entityA.id, gameState.wallToPlayerDamage);
+            }
             // new health values to send to client
             var name = gameState.getPlayerName(entityA.id);
             this.healthUpdates.players[name] = gameState.playerHealth[entityA.id];
@@ -417,16 +420,18 @@ class SpatialGrid {
         } else if (entityA.objectType === 'player' && entityB.objectType === 'bullet') {
             this.bulletsToRemove[entityB.bulletId] = ['destroy', entityB];
             gameState.destroyBullet(entityB.bulletId);
-
-            decreasePlayerHealth(gameState, entityA.id, gameState.playerBulletDamage);
+            if (!this.gameState.buildPhase) {
+                decreasePlayerHealth(gameState, entityA.id, gameState.playerBulletDamage);
+            }
             var name = gameState.getPlayerName(entityA.id);
             this.healthUpdates.players[name] = gameState.playerHealth[entityA.id];
 
         } else if (entityB.objectType === 'player' && entityA.objectType === 'bullet') {
             this.bulletsToRemove[entityA.bulletId] = ['destroy', entityA];
             gameState.destroyBullet(entityA.bulletId);
-
-            decreasePlayerHealth(gameState, entityB.id, gameState.playerBulletDamage);
+            if (!this.gameState.buildPhase) {
+                decreasePlayerHealth(gameState, entityB.id, gameState.playerBulletDamage);
+            }
             var name = gameState.getPlayerName(entityB.id);
             this.healthUpdates.players[name] = gameState.playerHealth[entityB.id];
 

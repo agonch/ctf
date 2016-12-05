@@ -1,7 +1,7 @@
 /* Game state for two teams, of 4 players */
 
 // Constants (these values can change later if desired)
-const MaxPlayersPerTeam = 8; // note, ok to be >= # spawn points
+const MaxPlayersPerTeam = 2; // note, ok to be >= # spawn points
 const GameBlockSize = 50; // in pixels
 const ValidObjectTypes = ['wall', 'turret'];    // Validate objectType sent by client before propagating to other players
 const MaxTurretsPerTeam = 3;    // TODO: indicate client-side what limits are and when they're reached
@@ -88,6 +88,20 @@ module.exports = class GameState {
         };
         this.pressed = {}; // pressed keys
         this.Grid = new SpatialGrid(GameBlockSize, this.boardSize[0], this.boardSize[1], this);
+        this.buildCountdown = 60;
+        this.buildPhase = true;
+        this.started = false;
+    }
+
+    startGameTimer() {
+        this.gameCountdown = 300;
+        var that = this;
+        this.gameInterval = setInterval(function () {
+            that.gameCountdown--;
+            if (that.gameCountdown < 0) {
+                clearInterval(that.gameInterval)
+            }
+        }, 1000);
     }
 
     /*
@@ -110,12 +124,25 @@ module.exports = class GameState {
         this.Grid.addEntity(!isStatic, entity);
     }
 
+    getLocationSide(location) {
+        var [x, y] = location;
+        if (x < this.boardSize[0] / 2) {
+            return "TeamLeft";
+        } else {
+            return "TeamRight"
+        }
+    }
+
     // Adds an object to the team (or decrements the veto count).
     // Return true if an object was updated, false if nothing was changed
     addObject(objectType, location, id) {
         // Place the object if it doesn't already exist
         if (!(location in this.selectedObjects)) {
             var team = this.getPlayerTeam(id);      // what team this object belongs to
+            var side = this.getLocationSide(location);
+            if (team !== side) {
+                return false;
+            }
             var details = {};                       // additional details regarding this object
 
             // objectType is invalid, don't add to model
@@ -336,8 +363,10 @@ module.exports = class GameState {
 
     /* Game is full if both teams are filled up. */
     isFull() {
-        return this.numPlayersPresent() >= MaxPlayersPerTeam*2;
+        return (this.numPlayersPresent() >= MaxPlayersPerTeam*2);
     }
+
+
 
     // Returns true if given x,y coord is outside of the game board
     isOutOfBounds(x, y) {
@@ -364,6 +393,17 @@ module.exports = class GameState {
     }
 
     addPlayer(id, name) {
+        if (Object.keys(this.playerPositions).length == 0) {
+            var that = this;
+            this.countInterval = setInterval(function () {
+                that.buildCountdown--;
+                if (that.buildCountdown < 0) {
+                    that.startGameTimer()
+                    that.buildPhase = false;
+                    clearInterval(that.countInterval)
+                }
+            }, 1000);
+        }
         console.log("addPlayer: " + id + ", " + name);
         const numLeft = this.teamToPlayers['TeamLeft'].size;
         const numRight = this.teamToPlayers['TeamRight'].size;

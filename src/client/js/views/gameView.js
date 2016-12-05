@@ -40,7 +40,7 @@ class GameView {
         // Initialize game values
         const {spawnPoint, boardSize, gridSize, playerPositions, playerName, namesToTeams, 
             objectPositions, turretStates, bulletStates,
-            validObjectTypes, maxWallHealth, maxPlayerHealth} = startData;
+            validObjectTypes, maxWallHealth, maxPlayerHealth, buildCountdown} = startData;
 
         GRID_SIZE = gridSize;
         Build_Tools = validObjectTypes;
@@ -72,6 +72,16 @@ class GameView {
         this.maxWallHealth = maxWallHealth;
         this.maxPlayerHealth = maxPlayerHealth;
 
+        this.buildCountdown = buildCountdown;
+        var that = this;
+        this.countInterval = setInterval(function () {
+            that.buildCountdown--;
+            if (that.buildCountdown < 0) {
+                clearInterval(that.countInterval)
+            }
+        }, 1000);
+        this.buildPhase = true;
+        this.gameCountdown = -1;
         this.initializeStates();
 
         // Initialize canvas
@@ -90,13 +100,30 @@ class GameView {
         this._clearCanvas();
         //this._drawBackground();
         this._drawGameBoard();
-        this._drawBuildTool();
+        if (this.buildPhase) {
+            this._drawBuildTool();
+            this._drawUI();
+        }
         this._drawGridLines();
         this._drawPlayers();
         this._drawBullets();
         this._drawObjects();
-        this._drawUI();
-        this._drawHealths();
+        if (!this.buildPhase) {
+            this._drawHealths();
+        }
+        this._drawTimer(this.buildPhase);
+    }
+
+    startGame(gameTime) {
+	    this.gameCountdown = gameTime;
+	    this.buildPhase = false;
+        var that = this;
+        this.gameInterval = setInterval(function () {
+            that.gameCountdown--;
+            if (that.gameCountdown < 0) {
+                clearInterval(that.gameInterval)
+            }
+        }, 1000);
     }
 
     // Fix outdated properties in states passed by server during initialization
@@ -118,6 +145,14 @@ class GameView {
             // Finished correcting states
             $canvas.off('initializeStates');
         });
+    }
+
+    _drawTimer(buildPhase) {
+	    if (buildPhase) {
+            document.getElementById("time").innerHTML = "Build time remaining: " + this.buildCountdown;
+        } else {
+            document.getElementById("time").innerHTML = "Game time remaining: " + this.gameCountdown;
+        }
     }
 
     _clearCanvas() {
@@ -172,7 +207,10 @@ class GameView {
             this.context.beginPath();
             this.context.moveTo(offsetX, offsetY);
             this.context.lineTo(offsetX, offsetY + this.boardSize[1]);
-            this.context.lineWidth = 0.50;
+            this.context.lineWidth = 0.25;
+            if (i === this.boardSize[0] / 2) {
+                this.context.lineWidth = 1;
+            }
             this.context.stroke();
         }
         for (var i = 0; i <= this.boardSize[1]; i+=GRID_SIZE) {
@@ -375,11 +413,13 @@ class GameView {
             
 
             // draw veto count
-            const padding = 5;
-            this.context.font = "20px serif";
-            this.context.textAlign = 'center';
-            this.context.fillStyle = 'yellow';
-            this.context.fillText(vetoCount, x + GRID_SIZE / 2, y + GRID_SIZE / 2);
+            if (this.buildPhase) {
+                const padding = 5;
+                this.context.font = "20px serif";
+                this.context.textAlign = 'center';
+                this.context.fillStyle = 'yellow';
+                this.context.fillText(vetoCount, x + GRID_SIZE / 2, y + GRID_SIZE / 2);
+            }
         }
     }
 

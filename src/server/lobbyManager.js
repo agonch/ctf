@@ -12,6 +12,10 @@ module.exports = class LobbyManager {
     }
 
     addPlayer(id, name) {
+        if (this.games[this.loadingGame].started) {
+            this.loadingGame++;
+            this.games.push(new GameState());
+        }
         this.games[this.loadingGame].addPlayer(id, name);
         var gameState = this.games[this.loadingGame];
         this.playerGame[id] = this.loadingGame;

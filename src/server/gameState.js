@@ -3,7 +3,7 @@
 // Constants (these values can change later if desired)
 const MaxPlayersPerTeam = 8; // note, ok to be >= # spawn points
 const GameBlockSize = 50; // in pixels
-const ValidObjectTypes = ['wall', 'turret'];    // Validate objectType sent by client before propagating to other players
+const ValidObjectTypes = ['wall', 'turret', 'flag', 'flagBase'];    // Validate objectType sent by client before propagating to other players
 const MaxTurretsPerTeam = 3;    // TODO: indicate client-side what limits are and when they're reached
 
 // Constants for SpatialGrid to use to update health in case of collisions
@@ -88,6 +88,41 @@ module.exports = class GameState {
         };
         this.pressed = {}; // pressed keys
         this.Grid = new SpatialGrid(GameBlockSize, this.boardSize[0], this.boardSize[1], this);
+
+        this.flagSpawnPoints = {
+            'TeamRight': [GameBlockSize / 2, GameBlockSize / 2],
+            'TeamLeft': [b_w - GameBlockSize * 3 / 2, GameBlockSize / 2]
+        };
+
+        this.flagBases = {
+            'TeamRight': {
+                location: [GameBlockSize / 2, GameBlockSize / 2],
+                objectType: 'flagBase',
+                team: 'TeamRight'
+            },
+            'TeamLeft': {
+                location: [b_w - GameBlockSize * 3 / 2, GameBlockSize / 2],
+                objectType: 'flagBase',
+                team: 'TeamLeft'
+            }
+        };
+
+        this.flags = {
+            'TeamRight': {
+                captor: null,
+                location: this.flagSpawnPoints['TeamRight'],
+                objectType: 'flag',
+                team: 'TeamRight'
+            },
+            'TeamLeft': {
+                captor: null,
+                location: this.flagSpawnPoints['TeamLeft'],
+                objectType: 'flag',
+                team: 'TeamLeft'
+            }
+        };
+
+
     }
 
     /*
@@ -95,18 +130,20 @@ module.exports = class GameState {
      */
     addToGrid(entity, location) {
         // TODO turret actually has smaller bounding box than wall
-        if (entity.objectType === 'turret' || entity.objectType === 'wall') {
+        if (entity.objectType === 'turret' || entity.objectType === 'wall' || entity.objectType == 'flagBase') {
             // note: Box actually uses lower left corner as location (not top left)
             entity.boundingBox = new Box(new Vector(location[0], location[1]), this.gameBlockSize, this.gameBlockSize);
         } else if (entity.objectType === 'player') {
             entity.boundingBox = new Circle(new Vector(location[0], location[1]), this.gameBlockSize / 2);
         } else if (entity.objectType === 'bullet') {
             entity.boundingBox = new Circle(new Vector(location[0], location[1]), entity.size);
+        } else if (entity.objectType === 'flag') {
+            entity.boundingBox = new Circle(new Vector(location[0], location[1]), entity.size);
         } else {
             throw new Error("Unkown object type");
         }
 
-        var isStatic = entity.objectType === 'turret' || entity.objectType === 'wall';
+        var isStatic = entity.objectType === 'turret' || entity.objectType === 'wall' || entity.objectType === 'flagBase';
         this.Grid.addEntity(!isStatic, entity);
     }
 
@@ -392,6 +429,16 @@ module.exports = class GameState {
         this.addToGrid(this.playerShape[id], this.playerPositions[id]);
     }
 
+    addFlags() {
+        this.addToGrid(this.flags['TeamRight'], this.flagSpawnPoints['TeamRight']);
+        this.addToGrid(this.flags['TeamLeft'], this.flagSpawnPoints['TeamLeft']);
+    }
+
+    addFlagBases() {
+        this.addToGrid(this.flagBases['TeamRight'], this.flagSpawnPoints["TeamRight"]);
+        this.addToGrid(this.flagBases['TeamLeft'], this.flagSpawnPoints["TeamLeft"]);
+    }
+
     removePlayer(id) {
         console.log("removePlayer");
         delete this.playerPositions[id];
@@ -420,6 +467,22 @@ module.exports = class GameState {
         // Update player's bounding box (for collision detection only).
         this.playerShape[id].boundingBox.pos.x = x;
         this.playerShape[id].boundingBox.pos.y = y;
+    }
+
+    playerTouchedFlag(playerId, flagTeam) {
+        // If the player touched the enemy flag and it was in its flagbase
+        if(this.getPlayerTeam(playerId) !== flagTeam && this.flags[flagTeam] === this.flagSpawnPoints[flagTeam]) {
+            this.flags[flagTeam].captor = playerId;
+        }
+    }
+
+    flagTouchedFlagBase(flagTeam, flagBaseTeam) {
+        // If a flag touches the enemy flagbase and someone is currently the captor
+        if (flagTeam !== flagBaseTeam && this.flags[flagTeam].captor !== null) {
+            // Give the right team a point and reset the flag fields
+            this.points[flagBaseTeam]++;
+            this.flags[flagTeam].captor = null;
+        }
     }
 
     /* Returns new player position to prevent them from crossing board edges. */

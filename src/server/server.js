@@ -58,6 +58,10 @@ io.on('connection', function (socket) {
             return;
         }
         var [gameState, gameId] = lobbyManager.addPlayer(socket.id, name);
+
+        // Add the flags
+        lobbyManager.addFlags();
+
         console.log('new player ', name);
 
         const [namesToPositions, namesToTeam] = gameState.getAllPlayers();

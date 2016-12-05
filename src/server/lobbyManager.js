@@ -22,6 +22,14 @@ module.exports = class LobbyManager {
         return [gameState, this.playerGame[id].toString()];
     }
 
+    addFlags() {
+        this.games[this.loadingGame].addFlags();
+    }
+
+    addFlagBases() {
+        this.games[this.loadingGame].addFlagBases();
+    }
+
     getGameState(id) {
         if (this.playerGame[id] === undefined) {
             return undefined;

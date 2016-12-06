@@ -151,23 +151,21 @@ class GameView {
         var [Lx, Ly] = this._getLocalCoords(this.flagBasePositions['TeamLeft'][0], this.flagBasePositions['TeamLeft'][1]);
 
         this.context.fillStyle = 'purple';
-        this.context.fillRect(Rx, Ry, GRID_SIZE, GRID_SIZE);
+        this.context.fillRect(Rx - (GRID_SIZE/2), Ry - (GRID_SIZE/2), GRID_SIZE, GRID_SIZE);
 
         this.context.fillStyle = 'purple';
-        this.context.fillRect(Lx, Ly, GRID_SIZE, GRID_SIZE);
+        this.context.fillRect(Lx - (GRID_SIZE/2), Ly - (GRID_SIZE/2), GRID_SIZE, GRID_SIZE);
     }
 
     _drawFlags() {
         var [Rx, Ry] = this._getLocalCoords(this.flagPositions['TeamRight'][0], this.flagPositions['TeamRight'][1]);
         var [Lx, Ly] = this._getLocalCoords(this.flagPositions['TeamLeft'][0], this.flagPositions['TeamLeft'][1]);
 
-        console.log(Rx + " " + Ry);
+        this.context.fillStyle = 'yellow';
+        this.context.fillRect(Rx - (GRID_SIZE/2), Ry - (GRID_SIZE/2), GRID_SIZE, GRID_SIZE);
 
         this.context.fillStyle = 'yellow';
-        this.context.fillRect(Rx, Ry, GRID_SIZE, GRID_SIZE);
-
-        this.context.fillStyle = 'yellow';
-        this.context.fillRect(Lx, Ly, GRID_SIZE, GRID_SIZE);
+        this.context.fillRect(Lx - (GRID_SIZE/2), Ly - (GRID_SIZE/2), GRID_SIZE, GRID_SIZE);
     }
 
     _drawGameBoard() {

@@ -183,7 +183,7 @@ function GameLoop() {
             var gameId = i.toString();
             var gameState = lobbyManager.games[i];
             if (gameState === undefined) {
-                console.log("LOG: gameState undefined, probably because someone left tab open during surver restart");
+                console.log("LOG: gameState undefined, probably because someone left tab open during server restart");
                 continue;
             }
             // Update turret states

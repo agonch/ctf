@@ -122,6 +122,10 @@ module.exports = class GameState {
             }
         };
 
+        this.points = {
+            'TeamRight': 0,
+            'TeamLeft': 0
+        }
 
     }
 
@@ -477,10 +481,13 @@ module.exports = class GameState {
         } else {
             this.flags[flagTeam].location = this.flagSpawnPoints[flagTeam];
         }
+
+        this.flags[flagTeam].boundingBox.pos.x = this.flags[flagTeam].location[0];
+        this.flags[flagTeam].boundingBox.pos.y = this.flags[flagTeam].location[1];
     }
 
     playerTouchedFlag(playerId, flagTeam) {
-        console.log("flagteam: " + flagTeam);
+        console.log("Player on team: " + this.getPlayerTeam(playerId) + " touched flag of team: " + flagTeam);
         // If a player touches his own flag and it's currently captured
         if (this.getPlayerTeam(playerId) === flagTeam && this.flags[flagTeam].captor !== null) {
             this.flags[flagTeam].captor = null;

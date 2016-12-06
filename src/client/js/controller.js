@@ -238,7 +238,7 @@
         socket.on('updateObjects', function({x, y, objectType, vetoCount, team, deleted, details}) {
             // Some other teammate has selected a wall, (or could have been you after broadcasted to your team).
             // Display it.
-            console.log(x, y, objectType, vetoCount, team, deleted);
+            //console.log(x, y, objectType, vetoCount, team, deleted);
 
             // search GAME_VIEW.objectPositions for the object to be updated
             // (either remove a object, or update its vetoCount, or add a new object)

@@ -90,8 +90,8 @@ module.exports = class GameState {
         this.Grid = new SpatialGrid(GameBlockSize, this.boardSize[0], this.boardSize[1], this);
 
         this.flagSpawnPoints = {
-            'TeamRight': [GameBlockSize / 2, GameBlockSize / 2],
-            'TeamLeft': [b_w - GameBlockSize * 3 / 2, GameBlockSize / 2]
+            'TeamRight': [b_w - GameBlockSize * 3 / 2, GameBlockSize / 2],
+            'TeamLeft': [GameBlockSize / 2, GameBlockSize / 2]
         };
 
         this.flagBases = {
@@ -434,14 +434,13 @@ module.exports = class GameState {
     }
 
     addFlags() {
-        console.log("Here");
         this.addToGrid(this.flags['TeamRight'], this.flagSpawnPoints['TeamRight']);
         this.addToGrid(this.flags['TeamLeft'], this.flagSpawnPoints['TeamLeft']);
     }
 
     addFlagBases() {
-        this.addToGrid(this.flagBases['TeamRight'], this.flagSpawnPoints["TeamRight"]);
-        this.addToGrid(this.flagBases['TeamLeft'], this.flagSpawnPoints["TeamLeft"]);
+        this.addToGrid(this.flagBases['TeamRight'], this.flagSpawnPoints['TeamRight']);
+        this.addToGrid(this.flagBases['TeamLeft'], this.flagSpawnPoints['TeamLeft']);
     }
 
     removePlayer(id) {
@@ -490,8 +489,7 @@ module.exports = class GameState {
         console.log("Player on team: " + this.getPlayerTeam(playerId) + " touched flag of team: " + flagTeam);
         // If a player touches his own flag and it's currently captured
         if (this.getPlayerTeam(playerId) === flagTeam && this.flags[flagTeam].captor !== null) {
-            this.flags[flagTeam].captor = null;
-            this.flags[flagTeam].location = this.flagSpawnPoints[flagTeam];
+            this.returnFlagToFlagBase(flagTeam);
         }
         // If the player touched the enemy flag and it was in its flagbase
         if (this.getPlayerTeam(playerId) !== flagTeam && this.flags[flagTeam].location === this.flagSpawnPoints[flagTeam]) {
@@ -503,9 +501,13 @@ module.exports = class GameState {
         // If a flag touches the enemy flagbase
         if (flagTeam !== flagBaseTeam && this.flags[flagTeam].captor !== null) {
             this.points[flagBaseTeam]++;
-            this.flags[flagTeam].captor = null;
-            this.flags[flagTeam].location = this.flagSpawnPoints[flagTeam];
+            this.returnFlagToFlagBase(flagTeam);
         }
+    }
+
+    returnFlagToFlagBase(flagTeam) {
+        this.flags[flagTeam].captor = null;
+        this.flags[flagTeam].location = this.flagSpawnPoints[flagTeam];
     }
 
     /* Returns new player position to prevent them from crossing board edges. */
@@ -581,6 +583,13 @@ module.exports = class GameState {
         }
         this.updatePlayerPosition(id, spawnPoint);
         this.playerHealth[id] = MaxPlayerHealth;
+
+        // If this player if holding a flag, return the flag
+        Object.keys(gameState.flags).forEach(flagTeam => {
+            if(this.flags[flagTeam].captor === id) {
+                this.returnFlagToFlagBase(flagTeam);
+            }
+        });
     }
 
 };

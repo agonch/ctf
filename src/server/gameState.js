@@ -585,7 +585,7 @@ module.exports = class GameState {
         this.playerHealth[id] = MaxPlayerHealth;
 
         // If this player if holding a flag, return the flag
-        Object.keys(gameState.flags).forEach(flagTeam => {
+        Object.keys(this.flags).forEach(flagTeam => {
             if(this.flags[flagTeam].captor === id) {
                 this.returnFlagToFlagBase(flagTeam);
             }

@@ -108,12 +108,12 @@ class GameView {
         this._drawGameBoard();
         this._drawBuildTool();
         this._drawGridLines();
+        this._drawFlagBases();
         this._drawPlayers();
         this._drawBullets();
         this._drawObjects();
         this._drawUI();
         this._drawHealths();
-        this._drawFlagBases();
         this._drawFlags();
         this._drawScores();
     }
@@ -172,11 +172,23 @@ class GameView {
         var [Rx, Ry] = this._getLocalCoords(this.flagPositions['TeamRight'][0], this.flagPositions['TeamRight'][1]);
         var [Lx, Ly] = this._getLocalCoords(this.flagPositions['TeamLeft'][0], this.flagPositions['TeamLeft'][1]);
 
-        this.context.fillStyle = 'yellow';
-        this.context.fillRect(Rx - (GRID_SIZE/2), Ry - (GRID_SIZE/2), GRID_SIZE, GRID_SIZE);
+        //this.context.fillStyle = 'orange';
+        //this.context.fillRect(Rx - (GRID_SIZE/2), Ry - (GRID_SIZE/2), GRID_SIZE, GRID_SIZE);
 
-        this.context.fillStyle = 'yellow';
-        this.context.fillRect(Lx - (GRID_SIZE/2), Ly - (GRID_SIZE/2), GRID_SIZE, GRID_SIZE);
+        this.context.fillStyle = 'aquamarine';
+        this.context.fillRect(Rx - (GRID_SIZE/2) + 5, Ry - (GRID_SIZE/2) + 5, GRID_SIZE/1.3, GRID_SIZE/2.2);
+
+        this.context.fillStyle = 'aqua';
+        this.context.fillRect(Rx - (GRID_SIZE/2) + 5, Ry - (GRID_SIZE/2) + 5, GRID_SIZE/6, GRID_SIZE/1.2);
+
+        //this.context.fillStyle = 'yellow';
+        //this.context.fillRect(Lx - (GRID_SIZE/2), Ly - (GRID_SIZE/2), GRID_SIZE, GRID_SIZE);
+
+        this.context.fillStyle = 'deeppink';
+        this.context.fillRect(Lx - (GRID_SIZE/2) + 5, Ly - (GRID_SIZE/2) + 5, GRID_SIZE/1.3, GRID_SIZE/2.2);
+
+        this.context.fillStyle = 'orangered';
+        this.context.fillRect(Lx - (GRID_SIZE/2) + 5, Ly - (GRID_SIZE/2) + 5, GRID_SIZE/6, GRID_SIZE/1.2);
     }
 
     _drawGameBoard() {

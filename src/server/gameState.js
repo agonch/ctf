@@ -90,18 +90,18 @@ module.exports = class GameState {
         this.Grid = new SpatialGrid(GameBlockSize, this.boardSize[0], this.boardSize[1], this);
 
         this.flagSpawnPoints = {
-            'TeamRight': [b_w - GameBlockSize * 3 / 2, GameBlockSize / 2],
-            'TeamLeft': [GameBlockSize / 2, GameBlockSize / 2]
+            'TeamRight': [b_w - GameBlockSize / 2, Math.floor(b_h/2) - GameBlockSize/2],
+            'TeamLeft': [GameBlockSize / 2, Math.floor(b_h/2) - GameBlockSize/2]
         };
 
         this.flagBases = {
             'TeamRight': {
-                location: [GameBlockSize / 2, GameBlockSize / 2],
+                location: this.flagSpawnPoints['TeamRight'],
                 objectType: 'flagBase',
                 team: 'TeamRight'
             },
             'TeamLeft': {
-                location: [b_w - GameBlockSize * 3 / 2, GameBlockSize / 2],
+                location: this.flagSpawnPoints['TeamLeft'],
                 objectType: 'flagBase',
                 team: 'TeamLeft'
             }

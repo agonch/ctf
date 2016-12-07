@@ -243,6 +243,7 @@ function GameLoop() {
                 io.to(gameId + 'TeamLeft').emit('startGame', gameState.gameCountdown, gameState.getAllObjects(), gameState.turretStates, namesToTeam);
                 io.to(gameId + 'TeamRight').emit('startGame', gameState.gameCountdown, gameState.getAllObjects(), gameState.turretStates, namesToTeam);
                 gameState.started = true;
+                gameState.respawnAll();
             }
 
 

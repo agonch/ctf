@@ -398,7 +398,7 @@ class SpatialGrid {
             curLoc[1] += overlapV.y;
             gameState.updatePlayerPosition(entityA.id, curLoc);
 
-            if (!this.gameState.buildPhase) {
+            if (!this.gameState.buildPhase && (gameState.getPlayerTeam(entityA.id) !== entityB.team)) {
                 var wallHealth = gameState.wallHealths[entityB.location];
                 wallHealth -= gameState.playerToWallDamage;
                 gameState.wallHealths[entityB.location] = wallHealth;
@@ -416,14 +416,14 @@ class SpatialGrid {
                 gameState.removeWall(entityB.location);
                 this.deleteEntity(entityB);
             }
-            if (!this.gameState.buildPhase) {
+            if (!this.gameState.buildPhase && (gameState.getPlayerTeam(entityA.id) !== entityB.team)) {
                 decreasePlayerHealth(gameState, entityA.id, gameState.wallToPlayerDamage);
-            }
-            // new health values to send to client
-            var name = gameState.getPlayerName(entityA.id);
-            this.healthUpdates.players[name] = gameState.playerHealth[entityA.id];
-            this.healthUpdates.walls[entityB.location] = wallHealth;
 
+                // new health values to send to client
+                var name = gameState.getPlayerName(entityA.id);
+                this.healthUpdates.players[name] = gameState.playerHealth[entityA.id];
+                this.healthUpdates.walls[entityB.location] = wallHealth;
+            }
         } else if (entityA.objectType === 'player' && entityB.objectType === 'bullet') {
             this.bulletsToRemove[entityB.bulletId] = ['destroy', entityB];
             gameState.destroyBullet(entityB.bulletId);

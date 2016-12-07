@@ -556,6 +556,12 @@ module.exports = class GameState {
         return [nameToPos, nameToTeam];
     }
 
+    respawnAll() {
+        for (var id in this.playerPositions) {
+            this.respawn(id);
+        }
+    }
+
     /* Updates player position to random spawn point on their team's side. */
     respawn(id) {
         const numSpawnsPerTeam = this.defaultSpawnPoints['TeamLeft'].length;

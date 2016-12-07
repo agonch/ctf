@@ -173,8 +173,10 @@ class GameView {
 
     _drawGameBoard() {
         var [x, y] = this._getLocalCoords(0, 0);
-        this.context.fillStyle = 'white';
-        this.context.fillRect(x, y, this.boardSize[0], this.boardSize[1]);
+        this.context.fillStyle = '#ffb9b9';
+        this.context.fillRect(x, y, this.boardSize[0] / 2, this.boardSize[1]);
+        this.context.fillStyle = '#b3b3ff';
+        this.context.fillRect(x + this.boardSize[0] / 2, y, this.boardSize[0] / 2, this.boardSize[1]);
     }
 
 	_drawPlayers() {
@@ -489,7 +491,9 @@ class GameView {
             health = this.healthValues['players'][name];
             var pos = this.players[name];
             var [x, y] = this._getLocalCoords(pos[0], pos[1]);
-            drawHealthBar(x - GRID_SIZE/2, y + GRID_SIZE/2 + bottomPadding, health/this.maxPlayerHealth, this.context);
+            if (health !== this.maxPlayerHealth) {
+                drawHealthBar(x - GRID_SIZE / 2, y + GRID_SIZE / 2 + bottomPadding, health / this.maxPlayerHealth, this.context);
+            }
         }
         for (var pos in this.healthValues['walls']) {
             health = this.healthValues['walls'][pos];

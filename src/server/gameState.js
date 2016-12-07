@@ -127,7 +127,7 @@ module.exports = class GameState {
             'TeamLeft': 0
         }
 
-        this.buildCountdown = 5;
+        this.buildCountdown = 60;
         this.buildPhase = true;
         this.started = false;
     }

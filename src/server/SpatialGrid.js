@@ -85,7 +85,7 @@ class SpatialGrid {
     // Unregister this entity to be checked for collision detection
     deleteEntity(entity) {
         var objType = entity.objectType;
-        if (objType === 'turret' || objType === 'wall') {
+        if (objType === 'turret' || objType === 'wall' || objType == 'flagBase') {
             this.deleteEntityFromArray(entity, this.staticEntities);
 
             // remove object from cells (we only do this for static case, since the update()
@@ -96,7 +96,7 @@ class SpatialGrid {
                 this.deleteEntityFromArray(entity, this.cellsStaticEntities[cell]);
             });
         }
-        else if (objType === 'player' || objType === 'bullet') {
+        else if (objType === 'player' || objType === 'bullet' || objType === 'flag') {
             this.deleteEntityFromArray(entity, this.dynamicEntities);
         }
         else {
@@ -338,7 +338,7 @@ class SpatialGrid {
      * they collide with, entityA, which is from outer loop, will always be a dynamic entity.
      */
     handleCollision(entityA, entityB) {
-        console.log(entityA, 'COLLIDED WITH',entityB);
+        //console.log(entityA, 'COLLIDED WITH',entityB);
         var gameState = this.gameState;
         var overlapV = this.collisionResponse.overlapV;
         assert(overlapV !== undefined);
@@ -433,6 +433,12 @@ class SpatialGrid {
         } else if (entityA.objectType === 'bullet' && entityB.objectType === 'wall') {
             this.bulletsToRemove[entityA.bulletId] = ['destroy', entityA];
             gameState.destroyBullet(entityA.bulletId);
+        } else if (entityA.objectType === 'flag' && entityB.objectType === 'player') {
+            gameState.playerTouchedFlag(entityB.id, entityA.team);
+        } else if (entityA.objectType === 'player' && entityB.objectType === 'flag') {
+            gameState.playerTouchedFlag(entityA.id, entityB.team)
+        } else if (entityA.objectType === 'flag' && entityB.objectType === 'flagBase') {
+            gameState.flagTouchedFlagBase(entityA.team, entityB.team);
         }
     }
 }

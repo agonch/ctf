@@ -58,6 +58,11 @@ io.on('connection', function (socket) {
             return;
         }
         var [gameState, gameId] = lobbyManager.addPlayer(socket.id, name);
+
+        // Add the flags and flagbases
+        lobbyManager.addFlags();
+        lobbyManager.addFlagBases();
+
         console.log('new player ', name);
 
         const [namesToPositions, namesToTeam] = gameState.getAllPlayers();
@@ -73,7 +78,9 @@ io.on('connection', function (socket) {
             bulletStates: gameState.bulletStates,
             validObjectTypes: gameState.getValidObjectTypes(),  // Tell the player what objects they can build
             maxWallHealth: gameState.maxWallHealth,
-            maxPlayerHealth: gameState.maxPlayerHealth
+            maxPlayerHealth: gameState.maxPlayerHealth,
+            teamRightFlagBasePosition: gameState.getFlagBasePositions()['TeamRight'],
+            teamLeftFlagBasePosition: gameState.getFlagBasePositions()['TeamLeft']
         };
         // for new player, send game start info
         socket.emit('initialize_approved', startData);
@@ -176,7 +183,7 @@ function GameLoop() {
             var gameId = i.toString();
             var gameState = lobbyManager.games[i];
             if (gameState === undefined) {
-                console.log("LOG: gameState undefined, probably because someone left tab open during surver restart");
+                console.log("LOG: gameState undefined, probably because someone left tab open during server restart");
                 continue;
             }
             // Update turret states
@@ -202,6 +209,10 @@ function GameLoop() {
 
             GameLogic.tickPlayerPositions(gameState);
 
+            GameLogic.tickFlagPositions(gameState);
+
+            GameLogic.tickScores(gameState);
+
             /* Note, we first 'tick' objects and update their positions, then we do collision
              * detection. For those objects that collided, we correct their position. */
             var [wallsToRemove, bulletsToRemove, healthUpdates] = gameState.Grid.update();
@@ -222,6 +233,10 @@ function GameLoop() {
             const [nameToPosition, _] = gameState.getAllPlayers();
             var names = gameState.getPlayerNames();
             io.to(gameId).emit('updatePlayerPositions', names, nameToPosition);
+
+            io.to(gameId).emit('updateFlagPositions', gameState.getFlagPositions());
+
+            io.to(gameId).emit('updateScores', gameState.getScores());
         }
     },
         1000 / TickRate /* TickRate of 40 FPS */);

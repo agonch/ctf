@@ -72,6 +72,22 @@ class GameView {
         this.maxWallHealth = maxWallHealth;
         this.maxPlayerHealth = maxPlayerHealth;
 
+        this.flagBasePositions = {
+            'TeamRight': startData.teamRightFlagBasePosition,
+            'TeamLeft': startData.teamLeftFlagBasePosition
+        };
+
+        this.flagPositions = {
+            'TeamRight': this.flagBasePositions['TeamRight'],
+            'TeamLeft': this.flagBasePositions['TeamLeft']
+        };
+
+        this.scores = {
+            'TeamRight': 0,
+            'TeamLeft': 0
+        }
+
+
         this.initializeStates();
 
         // Initialize canvas
@@ -92,11 +108,14 @@ class GameView {
         this._drawGameBoard();
         this._drawBuildTool();
         this._drawGridLines();
+        this._drawFlagBases();
         this._drawPlayers();
         this._drawBullets();
         this._drawObjects();
         this._drawUI();
         this._drawHealths();
+        this._drawFlags();
+        this._drawScores();
     }
 
     // Fix outdated properties in states passed by server during initialization
@@ -131,6 +150,45 @@ class GameView {
         this.context.fillStyle = 'blue';
         this.context.fillRect(0, 0, this.boardSize[0] + this.canvas.width * 2, 
             this.boardSize[1] + this.canvas.height * 2);
+    }
+
+    _drawScores() {
+	    document.getElementById('scores').innerHTML = "TeamRight: " + this.scores['TeamRight'] + ", "
+            + "TeamLeft: " + this.scores['TeamLeft'];
+    }
+
+    _drawFlagBases() {
+        var [Rx, Ry] = this._getLocalCoords(this.flagBasePositions['TeamRight'][0], this.flagBasePositions['TeamRight'][1]);
+        var [Lx, Ly] = this._getLocalCoords(this.flagBasePositions['TeamLeft'][0], this.flagBasePositions['TeamLeft'][1]);
+
+        this.context.fillStyle = 'purple';
+        this.context.fillRect(Rx - (GRID_SIZE/2), Ry - (GRID_SIZE/2), GRID_SIZE, GRID_SIZE);
+
+        this.context.fillStyle = 'purple';
+        this.context.fillRect(Lx - (GRID_SIZE/2), Ly - (GRID_SIZE/2), GRID_SIZE, GRID_SIZE);
+    }
+
+    _drawFlags() {
+        var [Rx, Ry] = this._getLocalCoords(this.flagPositions['TeamRight'][0], this.flagPositions['TeamRight'][1]);
+        var [Lx, Ly] = this._getLocalCoords(this.flagPositions['TeamLeft'][0], this.flagPositions['TeamLeft'][1]);
+
+        //this.context.fillStyle = 'orange';
+        //this.context.fillRect(Rx - (GRID_SIZE/2), Ry - (GRID_SIZE/2), GRID_SIZE, GRID_SIZE);
+
+        this.context.fillStyle = 'aquamarine';
+        this.context.fillRect(Rx - (GRID_SIZE/2) + 5, Ry - (GRID_SIZE/2) + 5, GRID_SIZE/1.3, GRID_SIZE/2.2);
+
+        this.context.fillStyle = 'aqua';
+        this.context.fillRect(Rx - (GRID_SIZE/2) + 5, Ry - (GRID_SIZE/2) + 5, GRID_SIZE/6, GRID_SIZE/1.2);
+
+        //this.context.fillStyle = 'yellow';
+        //this.context.fillRect(Lx - (GRID_SIZE/2), Ly - (GRID_SIZE/2), GRID_SIZE, GRID_SIZE);
+
+        this.context.fillStyle = 'deeppink';
+        this.context.fillRect(Lx - (GRID_SIZE/2) + 5, Ly - (GRID_SIZE/2) + 5, GRID_SIZE/1.3, GRID_SIZE/2.2);
+
+        this.context.fillStyle = 'orangered';
+        this.context.fillRect(Lx - (GRID_SIZE/2) + 5, Ly - (GRID_SIZE/2) + 5, GRID_SIZE/6, GRID_SIZE/1.2);
     }
 
     _drawGameBoard() {
@@ -275,6 +333,14 @@ class GameView {
 
 		this.players[name] = pos;
 	}
+
+	setFlagLocation(flagTeam, pos) {
+        this.flagPositions[flagTeam] = pos;
+    }
+
+    setScore(flagTeam, score) {
+        this.scores[flagTeam] = score;
+    }
 
     moveCamera(deltaX, deltaY) {
         this.context.translate(deltaX, deltaY);

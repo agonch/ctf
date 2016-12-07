@@ -124,6 +124,18 @@
             GAME_VIEW.draw();
         });
 
+        socket.on('updateFlagPositions', function (flagPositions) {
+            Object.keys(flagPositions).forEach(flagTeam => {
+                GAME_VIEW.setFlagLocation(flagTeam, flagPositions[flagTeam])
+            });
+        });
+
+        socket.on('updateScores', function(scores) {
+            Object.keys(scores).forEach(flagTeam => {
+                GAME_VIEW.setScore(flagTeam, scores[flagTeam])
+            });
+        });
+
         // Triggered when turrets have changed behavioral states, syncing all attributes back to the server's
         socket.on('updateTurrets', function(updatedStates) {
             // updatedStates maps turretId -> turretState
@@ -232,7 +244,7 @@
         socket.on('updateObjects', function({x, y, objectType, vetoCount, team, deleted, details}) {
             // Some other teammate has selected a wall, (or could have been you after broadcasted to your team).
             // Display it.
-            console.log(x, y, objectType, vetoCount, team, deleted);
+            //console.log(x, y, objectType, vetoCount, team, deleted);
 
             // search GAME_VIEW.objectPositions for the object to be updated
             // (either remove a object, or update its vetoCount, or add a new object)

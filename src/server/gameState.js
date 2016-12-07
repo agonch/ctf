@@ -88,6 +88,45 @@ module.exports = class GameState {
         };
         this.pressed = {}; // pressed keys
         this.Grid = new SpatialGrid(GameBlockSize, this.boardSize[0], this.boardSize[1], this);
+
+        this.flagSpawnPoints = {
+            'TeamRight': [b_w - GameBlockSize / 2, Math.floor(b_h/2) - GameBlockSize/2],
+            'TeamLeft': [GameBlockSize / 2, Math.floor(b_h/2) - GameBlockSize/2]
+        };
+
+        this.flagBases = {
+            'TeamRight': {
+                location: this.flagSpawnPoints['TeamRight'],
+                objectType: 'flagBase',
+                team: 'TeamRight'
+            },
+            'TeamLeft': {
+                location: this.flagSpawnPoints['TeamLeft'],
+                objectType: 'flagBase',
+                team: 'TeamLeft'
+            }
+        };
+
+        this.flags = {
+            'TeamRight': {
+                captor: null,
+                location: this.flagSpawnPoints['TeamRight'],
+                objectType: 'flag',
+                team: 'TeamRight'
+            },
+            'TeamLeft': {
+                captor: null,
+                location: this.flagSpawnPoints['TeamLeft'],
+                objectType: 'flag',
+                team: 'TeamLeft'
+            }
+        };
+
+        this.points = {
+            'TeamRight': 0,
+            'TeamLeft': 0
+        }
+
     }
 
     /*
@@ -95,18 +134,20 @@ module.exports = class GameState {
      */
     addToGrid(entity, location) {
         // TODO turret actually has smaller bounding box than wall
-        if (entity.objectType === 'turret' || entity.objectType === 'wall') {
+        if (entity.objectType === 'turret' || entity.objectType === 'wall' || entity.objectType == 'flagBase') {
             // note: Box actually uses lower left corner as location (not top left)
             entity.boundingBox = new Box(new Vector(location[0], location[1]), this.gameBlockSize, this.gameBlockSize);
         } else if (entity.objectType === 'player') {
             entity.boundingBox = new Circle(new Vector(location[0], location[1]), this.gameBlockSize / 2);
         } else if (entity.objectType === 'bullet') {
             entity.boundingBox = new Circle(new Vector(location[0], location[1]), entity.size);
+        } else if (entity.objectType === 'flag') {
+            entity.boundingBox = new Circle(new Vector(location[0], location[1]), entity.size);
         } else {
             throw new Error("Unkown object type");
         }
 
-        var isStatic = entity.objectType === 'turret' || entity.objectType === 'wall';
+        var isStatic = entity.objectType === 'turret' || entity.objectType === 'wall' || entity.objectType === 'flagBase';
         this.Grid.addEntity(!isStatic, entity);
     }
 
@@ -392,6 +433,16 @@ module.exports = class GameState {
         this.addToGrid(this.playerShape[id], this.playerPositions[id]);
     }
 
+    addFlags() {
+        this.addToGrid(this.flags['TeamRight'], this.flagSpawnPoints['TeamRight']);
+        this.addToGrid(this.flags['TeamLeft'], this.flagSpawnPoints['TeamLeft']);
+    }
+
+    addFlagBases() {
+        this.addToGrid(this.flagBases['TeamRight'], this.flagSpawnPoints['TeamRight']);
+        this.addToGrid(this.flagBases['TeamLeft'], this.flagSpawnPoints['TeamLeft']);
+    }
+
     removePlayer(id) {
         console.log("removePlayer");
         delete this.playerPositions[id];
@@ -420,6 +471,47 @@ module.exports = class GameState {
         // Update player's bounding box (for collision detection only).
         this.playerShape[id].boundingBox.pos.x = x;
         this.playerShape[id].boundingBox.pos.y = y;
+    }
+
+    updateFlagPosition(flagTeam) {
+        // If the flag is currently captured, then make it appear on top of the captor
+        if (this.flags[flagTeam].captor !== null) {
+            this.flags[flagTeam].location = this.getPlayerPosition(this.flags[flagTeam].captor);
+        } else {
+            this.flags[flagTeam].location = this.flagSpawnPoints[flagTeam];
+        }
+
+        this.flags[flagTeam].boundingBox.pos.x = this.flags[flagTeam].location[0];
+        this.flags[flagTeam].boundingBox.pos.y = this.flags[flagTeam].location[1];
+    }
+
+    updateScores(flagTeam, score) {
+        this.points[flagTeam] = score;
+    }
+
+    playerTouchedFlag(playerId, flagTeam) {
+        console.log("Player on team: " + this.getPlayerTeam(playerId) + " touched flag of team: " + flagTeam);
+        // If a player touches his own flag and it's currently captured
+        if (this.getPlayerTeam(playerId) === flagTeam && this.flags[flagTeam].captor !== null) {
+            this.returnFlagToFlagBase(flagTeam);
+        }
+        // If the player touched the enemy flag and it was in its flagbase
+        if (this.getPlayerTeam(playerId) !== flagTeam && this.flags[flagTeam].location === this.flagSpawnPoints[flagTeam]) {
+            this.flags[flagTeam].captor = playerId;
+        }
+    }
+
+    flagTouchedFlagBase(flagTeam, flagBaseTeam) {
+        // If a flag touches the enemy flagbase
+        if (flagTeam !== flagBaseTeam && this.flags[flagTeam].captor !== null) {
+            this.points[flagBaseTeam]++;
+            this.returnFlagToFlagBase(flagTeam);
+        }
+    }
+
+    returnFlagToFlagBase(flagTeam) {
+        this.flags[flagTeam].captor = null;
+        this.flags[flagTeam].location = this.flagSpawnPoints[flagTeam];
     }
 
     /* Returns new player position to prevent them from crossing board edges. */
@@ -470,6 +562,27 @@ module.exports = class GameState {
         return [nameToPos, nameToTeam];
     }
 
+    getFlagPositions() {
+        return {
+            'TeamRight': this.flags['TeamRight'].location,
+            'TeamLeft': this.flags['TeamLeft'].location
+        };
+    }
+
+    getScores() {
+        return {
+            'TeamRight': this.points['TeamRight'],
+            'TeamLeft': this.points['TeamLeft']
+        };
+    }
+
+    getFlagBasePositions() {
+        return {
+            'TeamRight': this.flagSpawnPoints['TeamRight'],
+            'TeamLeft': this.flagSpawnPoints['TeamLeft']
+        };
+    }
+
     /* Updates player position to random spawn point on their team's side. */
     respawn(id) {
         const numSpawnsPerTeam = this.defaultSpawnPoints['TeamLeft'].length;
@@ -481,6 +594,13 @@ module.exports = class GameState {
         }
         this.updatePlayerPosition(id, spawnPoint);
         this.playerHealth[id] = MaxPlayerHealth;
+
+        // If this player if holding a flag, return the flag
+        Object.keys(this.flags).forEach(flagTeam => {
+            if(this.flags[flagTeam].captor === id) {
+                this.returnFlagToFlagBase(flagTeam);
+            }
+        });
     }
 
 };

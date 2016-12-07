@@ -168,6 +168,10 @@
         });
     }
 
+    socket.on('startGame', function(gameTime, objects, turrets, namesToTeam) {
+        GAME_VIEW.startGame(gameTime, objects, turrets, namesToTeam);
+    });
+
     // Update Wall/Player Healths (this gets called during game only, not during build phase)
     socket.on('updateHealths', function(objType, healthUpdates) {
         if (!(objType in GAME_VIEW.healthValues))

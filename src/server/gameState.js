@@ -1,7 +1,7 @@
 /* Game state for two teams, of 4 players */
 
 // Constants (these values can change later if desired)
-const MaxPlayersPerTeam = 8; // note, ok to be >= # spawn points
+const MaxPlayersPerTeam = 2; // note, ok to be >= # spawn points
 const GameBlockSize = 50; // in pixels
 const ValidObjectTypes = ['wall', 'turret'];    // Validate objectType sent by client before propagating to other players
 const MaxTurretsPerTeam = 3;    // TODO: indicate client-side what limits are and when they're reached
@@ -127,6 +127,20 @@ module.exports = class GameState {
             'TeamLeft': 0
         }
 
+        this.buildCountdown = 5;
+        this.buildPhase = true;
+        this.started = false;
+    }
+
+    startGameTimer() {
+        this.gameCountdown = 300;
+        var that = this;
+        this.gameInterval = setInterval(function () {
+            that.gameCountdown--;
+            if (that.gameCountdown < 0) {
+                clearInterval(that.gameInterval)
+            }
+        }, 1000);
     }
 
     /*
@@ -151,12 +165,25 @@ module.exports = class GameState {
         this.Grid.addEntity(!isStatic, entity);
     }
 
+    getLocationSide(location) {
+        var [x, y] = location;
+        if (x < this.boardSize[0] / 2) {
+            return "TeamLeft";
+        } else {
+            return "TeamRight"
+        }
+    }
+
     // Adds an object to the team (or decrements the veto count).
     // Return true if an object was updated, false if nothing was changed
     addObject(objectType, location, id) {
         // Place the object if it doesn't already exist
         if (!(location in this.selectedObjects)) {
             var team = this.getPlayerTeam(id);      // what team this object belongs to
+            var side = this.getLocationSide(location);
+            if (team !== side) {
+                return false;
+            }
             var details = {};                       // additional details regarding this object
 
             // objectType is invalid, don't add to model
@@ -327,8 +354,17 @@ module.exports = class GameState {
         delete this.bulletStates[bulletId];
     }
 
-    getAllObjects() {
+    getAllObjects(id) {
         const objects = [];
+        if (id !== undefined) {
+            var teamLeft = this.teamToPlayers['TeamLeft'].has(id);
+            var playerTeam;
+            if (teamLeft) {
+                playerTeam = 'TeamLeft';
+            } else {
+                playerTeam = 'TeamRight';
+            }
+        }
         var objectStings = Object.keys(this.selectedObjects);
         for (var i = 0; i < objectStings.length; i++) {
             var location = objectStings[i];   // "x,y" (must use strings for the object location as the key into this.selectedObjects)
@@ -345,8 +381,13 @@ module.exports = class GameState {
             if (this.selectedObjects[location].details) {
                 attributes.details = this.selectedObjects[location].details;
             }
-
-            objects.push(attributes);
+            if (id === undefined) {
+                objects.push(attributes);
+            }
+            else if (attributes.team === playerTeam)
+            {
+                objects.push(attributes);
+            }
         }
 
         return objects;
@@ -377,8 +418,10 @@ module.exports = class GameState {
 
     /* Game is full if both teams are filled up. */
     isFull() {
-        return this.numPlayersPresent() >= MaxPlayersPerTeam*2;
+        return (this.numPlayersPresent() >= MaxPlayersPerTeam*2);
     }
+
+
 
     // Returns true if given x,y coord is outside of the game board
     isOutOfBounds(x, y) {
@@ -405,6 +448,17 @@ module.exports = class GameState {
     }
 
     addPlayer(id, name) {
+        if (Object.keys(this.playerPositions).length == 0) {
+            var that = this;
+            this.countInterval = setInterval(function () {
+                that.buildCountdown--;
+                if (that.buildCountdown < 0) {
+                    that.startGameTimer()
+                    that.buildPhase = false;
+                    clearInterval(that.countInterval)
+                }
+            }, 1000);
+        }
         console.log("addPlayer: " + id + ", " + name);
         const numLeft = this.teamToPlayers['TeamLeft'].size;
         const numRight = this.teamToPlayers['TeamRight'].size;
@@ -465,7 +519,7 @@ module.exports = class GameState {
     updatePlayerPosition(id, pos) {
         var x = pos[0];
         var y = pos[1];
-        [x, y] = this.checkBoardEdgeCollision([x, y]);
+        [x, y] = this.checkBoardEdgeCollision([x, y], id);
         this.playerPositions[id] = [x,y];
 
         // Update player's bounding box (for collision detection only).
@@ -477,12 +531,14 @@ module.exports = class GameState {
         // If the flag is currently captured, then make it appear on top of the captor
         if (this.flags[flagTeam].captor !== null) {
             this.flags[flagTeam].location = this.getPlayerPosition(this.flags[flagTeam].captor);
+            this.flags[flagTeam].boundingBox.pos.x = this.flags[flagTeam].location[0];
+            this.flags[flagTeam].boundingBox.pos.y = this.flags[flagTeam].location[1];
         } else {
             this.flags[flagTeam].location = this.flagSpawnPoints[flagTeam];
+            this.flags[flagTeam].boundingBox.pos.x = this.flagSpawnPoints[flagTeam][0];
+            this.flags[flagTeam].boundingBox.pos.y = this.flagSpawnPoints[flagTeam][1];
         }
 
-        this.flags[flagTeam].boundingBox.pos.x = this.flags[flagTeam].location[0];
-        this.flags[flagTeam].boundingBox.pos.y = this.flags[flagTeam].location[1];
     }
 
     updateScores(flagTeam, score) {
@@ -490,11 +546,12 @@ module.exports = class GameState {
     }
 
     playerTouchedFlag(playerId, flagTeam) {
-        console.log("Player on team: " + this.getPlayerTeam(playerId) + " touched flag of team: " + flagTeam);
-        // If a player touches his own flag and it's currently captured
-        if (this.getPlayerTeam(playerId) === flagTeam && this.flags[flagTeam].captor !== null) {
+        //console.log("Player on team: " + this.getPlayerTeam(playerId) + " touched flag of team: " + flagTeam);
+
+        /*if (this.getPlayerTeam(playerId) === flagTeam && this.flags[flagTeam].captor !== null && this.flags[flagTeam].captor !== undefined) {
             this.returnFlagToFlagBase(flagTeam);
-        }
+        }*/
+
         // If the player touched the enemy flag and it was in its flagbase
         if (this.getPlayerTeam(playerId) !== flagTeam && this.flags[flagTeam].location === this.flagSpawnPoints[flagTeam]) {
             this.flags[flagTeam].captor = playerId;
@@ -512,18 +569,27 @@ module.exports = class GameState {
     returnFlagToFlagBase(flagTeam) {
         this.flags[flagTeam].captor = null;
         this.flags[flagTeam].location = this.flagSpawnPoints[flagTeam];
+        this.flags[flagTeam].boundingBox.pos.x = this.flags[flagTeam].location[0];
+        this.flags[flagTeam].boundingBox.pos.y = this.flags[flagTeam].location[1];
     }
 
     /* Returns new player position to prevent them from crossing board edges. */
-    checkBoardEdgeCollision(pos) {
+    checkBoardEdgeCollision(pos, id) {
         // pos is center of player
+        var offsetRight = 0;
+        var offsetLeft = 0;
+        if (this.buildPhase && this.teamToPlayers['TeamLeft'].has(id)) {
+            offsetRight = -1 * this.boardSize[0] / 2
+        } else if (this.buildPhase && this.teamToPlayers['TeamRight'].has(id)) {
+            offsetLeft = this.boardSize[0] / 2;
+        }
         var x = pos[0];
         var y = pos[1];
-        if (x < (GameBlockSize / 2)) {
-            x = (GameBlockSize / 2);
+        if (x < (GameBlockSize / 2 + offsetLeft)) {
+            x = (GameBlockSize / 2 + offsetLeft);
         }
-        if (x > (this.boardSize[0] - (GameBlockSize / 2))) {
-            x = (this.boardSize[0] - (GameBlockSize / 2));
+        if (x > (this.boardSize[0] - (GameBlockSize / 2) + offsetRight)) {
+            x = (this.boardSize[0] - (GameBlockSize / 2) + offsetRight);
         }
         if (pos[1] < (GameBlockSize / 2)) {
             y = (GameBlockSize / 2);
@@ -581,6 +647,37 @@ module.exports = class GameState {
             'TeamRight': this.flagSpawnPoints['TeamRight'],
             'TeamLeft': this.flagSpawnPoints['TeamLeft']
         };
+    }
+
+    getAllTeamPlayers(id, team) {
+        var teamLeft;
+        if (id === null) {
+            teamLeft = team === 'TeamLeft';
+        } else {
+            teamLeft = this.teamToPlayers['TeamLeft'].has(id);
+        }
+        var nameToPos = {};
+        var nameToTeam = {};
+        const ids = Object.keys(this.playerPositions);
+        for (var i = 0; i < ids.length; i++) {
+            var innerId = ids[i];
+            var name = this.playerNames[innerId];
+            var innerTeamLeft = this.teamToPlayers['TeamLeft'].has(innerId);
+            if (teamLeft && innerTeamLeft) {
+                nameToPos[name] = this.playerPositions[innerId];
+                nameToTeam[name] = 'TeamLeft';
+            } else if (!teamLeft && !innerTeamLeft) {
+                nameToPos[name] = this.playerPositions[innerId];
+                nameToTeam[name] = 'TeamRight';
+            }
+        }
+        return [nameToPos, nameToTeam];
+    }
+
+    respawnAll() {
+        for (var id in this.playerPositions) {
+            this.respawn(id);
+        }
     }
 
     /* Updates player position to random spawn point on their team's side. */

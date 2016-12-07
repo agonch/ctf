@@ -40,7 +40,7 @@ class GameView {
         // Initialize game values
         const {spawnPoint, boardSize, gridSize, playerPositions, playerName, namesToTeams, 
             objectPositions, turretStates, bulletStates,
-            validObjectTypes, maxWallHealth, maxPlayerHealth} = startData;
+            validObjectTypes, maxWallHealth, maxPlayerHealth, buildCountdown} = startData;
 
         GRID_SIZE = gridSize;
         Build_Tools = validObjectTypes;
@@ -87,6 +87,16 @@ class GameView {
             'TeamLeft': 0
         }
 
+        this.buildCountdown = buildCountdown;
+        var that = this;
+        this.countInterval = setInterval(function () {
+            that.buildCountdown--;
+            if (that.buildCountdown < 0) {
+                clearInterval(that.countInterval)
+            }
+        }, 1000);
+        this.buildPhase = true;
+        this.gameCountdown = -1;
 
         this.initializeStates();
 
@@ -106,16 +116,36 @@ class GameView {
         this._clearCanvas();
         //this._drawBackground();
         this._drawGameBoard();
-        this._drawBuildTool();
+        if (this.buildPhase) {
+            this._drawBuildTool();
+            this._drawUI();
+        }
         this._drawGridLines();
         this._drawFlagBases();
         this._drawPlayers();
         this._drawBullets();
         this._drawObjects();
-        this._drawUI();
-        this._drawHealths();
         this._drawFlags();
         this._drawScores();
+        if (!this.buildPhase) {
+            this._drawHealths();
+        }
+        this._drawTimer(this.buildPhase);
+    }
+
+    startGame(gameTime, objects, turrets, namesToTeams) {
+	    this.gameCountdown = gameTime;
+        this.namesToTeams = namesToTeams;
+	    this.objectPositions = objects;
+	    this.turretStates = turrets;
+	    this.buildPhase = false;
+        var that = this;
+        this.gameInterval = setInterval(function () {
+            that.gameCountdown--;
+            if (that.gameCountdown < 0) {
+                clearInterval(that.gameInterval)
+            }
+        }, 1000);
     }
 
     // Fix outdated properties in states passed by server during initialization
@@ -137,6 +167,14 @@ class GameView {
             // Finished correcting states
             $canvas.off('initializeStates');
         });
+    }
+
+    _drawTimer(buildPhase) {
+	    if (buildPhase) {
+            document.getElementById("time").innerHTML = "Build time remaining: " + this.buildCountdown;
+        } else {
+            document.getElementById("time").innerHTML = "Game time remaining: " + this.gameCountdown;
+        }
     }
 
     _clearCanvas() {
@@ -193,8 +231,10 @@ class GameView {
 
     _drawGameBoard() {
         var [x, y] = this._getLocalCoords(0, 0);
-        this.context.fillStyle = 'white';
-        this.context.fillRect(x, y, this.boardSize[0], this.boardSize[1]);
+        this.context.fillStyle = '#ffb9b9';
+        this.context.fillRect(x, y, this.boardSize[0] / 2, this.boardSize[1]);
+        this.context.fillStyle = '#b3b3ff';
+        this.context.fillRect(x + this.boardSize[0] / 2, y, this.boardSize[0] / 2, this.boardSize[1]);
     }
 
 	_drawPlayers() {
@@ -224,13 +264,15 @@ class GameView {
     }
 
 	_drawGridLines() {
-
         for (var i = 0; i <= this.boardSize[0]; i+=GRID_SIZE) {
             var [offsetX, offsetY] = this._getLocalCoords(i, 0);
             this.context.beginPath();
             this.context.moveTo(offsetX, offsetY);
             this.context.lineTo(offsetX, offsetY + this.boardSize[1]);
-            this.context.lineWidth = 0.50;
+            this.context.lineWidth = 0.25;
+            if (i === this.boardSize[0] / 2) {
+                this.context.lineWidth = 1;
+            }
             this.context.stroke();
         }
         for (var i = 0; i <= this.boardSize[1]; i+=GRID_SIZE) {
@@ -425,7 +467,6 @@ class GameView {
 
                     // For now, just update the simple logic of the turret turning at a constant
                     turret.angle += turret.speed * Step_Deficit;
-
                     __drawTurret(this.context, x, y, turret.angle, Team_Colors[team]);
 
                     break;
@@ -441,11 +482,13 @@ class GameView {
             
 
             // draw veto count
-            const padding = 5;
-            this.context.font = "20px serif";
-            this.context.textAlign = 'center';
-            this.context.fillStyle = 'yellow';
-            this.context.fillText(vetoCount, x + GRID_SIZE / 2, y + GRID_SIZE / 2);
+            if (this.buildPhase) {
+                const padding = 5;
+                this.context.font = "20px serif";
+                this.context.textAlign = 'center';
+                this.context.fillStyle = 'yellow';
+                this.context.fillText(vetoCount, x + GRID_SIZE / 2, y + GRID_SIZE / 2);
+            }
         }
     }
 
@@ -514,7 +557,9 @@ class GameView {
             health = this.healthValues['players'][name];
             var pos = this.players[name];
             var [x, y] = this._getLocalCoords(pos[0], pos[1]);
-            drawHealthBar(x - GRID_SIZE/2, y + GRID_SIZE/2 + bottomPadding, health/this.maxPlayerHealth, this.context);
+            if (health !== this.maxPlayerHealth) {
+                drawHealthBar(x - GRID_SIZE / 2, y + GRID_SIZE / 2 + bottomPadding, health / this.maxPlayerHealth, this.context);
+            }
         }
         for (var pos in this.healthValues['walls']) {
             health = this.healthValues['walls'][pos];
@@ -528,6 +573,7 @@ class GameView {
 
 // Draw a turret with the given angle in degrees and color
 function __drawTurret(context, x, y, angle, color) {
+
     const basePadding = 0.1;  // factor of GRID_SIZE
     context.fillStyle = color;
     context.fillRect(x + GRID_SIZE*basePadding, y + GRID_SIZE*basePadding, 

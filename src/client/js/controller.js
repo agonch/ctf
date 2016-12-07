@@ -52,7 +52,7 @@
 
         socket.on('newPlayer', function (name, pos, team) {
             console.log("Called: " + name);
-            if (GAME_VIEW.playerName != name) {
+            if (GAME_VIEW.playerName !== name) {
                 console.log("Player joined: " + name + " this is player on team ", team);
                 GAME_VIEW.setPlayerTeam(name, team);
                 console.log("POSITION: " + pos);
@@ -61,7 +61,7 @@
         });
 
         socket.on('removePlayer', function (name) {
-            if (GAME_VIEW.playerName != name) {
+            if (GAME_VIEW.playerName !== name) {
                 console.log("Player disconnected: " + name);
                 GAME_VIEW.removePlayer(name);
             }

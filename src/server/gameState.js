@@ -313,8 +313,17 @@ module.exports = class GameState {
         delete this.bulletStates[bulletId];
     }
 
-    getAllObjects() {
+    getAllObjects(id) {
         const objects = [];
+        if (id !== undefined) {
+            var teamLeft = this.teamToPlayers['TeamLeft'].has(id);
+            var playerTeam;
+            if (teamLeft) {
+                playerTeam = 'TeamLeft';
+            } else {
+                playerTeam = 'TeamRight';
+            }
+        }
         var objectStings = Object.keys(this.selectedObjects);
         for (var i = 0; i < objectStings.length; i++) {
             var location = objectStings[i];   // "x,y" (must use strings for the object location as the key into this.selectedObjects)
@@ -331,8 +340,13 @@ module.exports = class GameState {
             if (this.selectedObjects[location].details) {
                 attributes.details = this.selectedObjects[location].details;
             }
-
-            objects.push(attributes);
+            if (id === undefined) {
+                objects.push(attributes);
+            }
+            else if (attributes.team === playerTeam)
+            {
+                objects.push(attributes);
+            }
         }
 
         return objects;
@@ -454,7 +468,7 @@ module.exports = class GameState {
     updatePlayerPosition(id, pos) {
         var x = pos[0];
         var y = pos[1];
-        [x, y] = this.checkBoardEdgeCollision([x, y]);
+        [x, y] = this.checkBoardEdgeCollision([x, y], id);
         this.playerPositions[id] = [x,y];
 
         // Update player's bounding box (for collision detection only).
@@ -463,15 +477,22 @@ module.exports = class GameState {
     }
 
     /* Returns new player position to prevent them from crossing board edges. */
-    checkBoardEdgeCollision(pos) {
+    checkBoardEdgeCollision(pos, id) {
         // pos is center of player
+        var offsetRight = 0;
+        var offsetLeft = 0;
+        if (this.buildPhase && this.teamToPlayers['TeamLeft'].has(id)) {
+            offsetRight = -1 * this.boardSize[0] / 2
+        } else if (this.buildPhase && this.teamToPlayers['TeamRight'].has(id)) {
+            offsetLeft = this.boardSize[0] / 2;
+        }
         var x = pos[0];
         var y = pos[1];
-        if (x < (GameBlockSize / 2)) {
-            x = (GameBlockSize / 2);
+        if (x < (GameBlockSize / 2 + offsetLeft)) {
+            x = (GameBlockSize / 2 + offsetLeft);
         }
-        if (x > (this.boardSize[0] - (GameBlockSize / 2))) {
-            x = (this.boardSize[0] - (GameBlockSize / 2));
+        if (x > (this.boardSize[0] - (GameBlockSize / 2) + offsetRight)) {
+            x = (this.boardSize[0] - (GameBlockSize / 2) + offsetRight);
         }
         if (pos[1] < (GameBlockSize / 2)) {
             y = (GameBlockSize / 2);
@@ -504,6 +525,31 @@ module.exports = class GameState {
             if (this.teamToPlayers['TeamLeft'].has(id)) {
                 nameToTeam[name] = 'TeamLeft';
             } else {
+                nameToTeam[name] = 'TeamRight';
+            }
+        }
+        return [nameToPos, nameToTeam];
+    }
+
+    getAllTeamPlayers(id, team) {
+        var teamLeft;
+        if (id === null) {
+            teamLeft = team === 'TeamLeft';
+        } else {
+            teamLeft = this.teamToPlayers['TeamLeft'].has(id);
+        }
+        var nameToPos = {};
+        var nameToTeam = {};
+        const ids = Object.keys(this.playerPositions);
+        for (var i = 0; i < ids.length; i++) {
+            var innerId = ids[i];
+            var name = this.playerNames[innerId];
+            var innerTeamLeft = this.teamToPlayers['TeamLeft'].has(innerId);
+            if (teamLeft && innerTeamLeft) {
+                nameToPos[name] = this.playerPositions[innerId];
+                nameToTeam[name] = 'TeamLeft';
+            } else if (!teamLeft && !innerTeamLeft) {
+                nameToPos[name] = this.playerPositions[innerId];
                 nameToTeam[name] = 'TeamRight';
             }
         }

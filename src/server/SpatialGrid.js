@@ -338,7 +338,7 @@ class SpatialGrid {
      * they collide with, entityA, which is from outer loop, will always be a dynamic entity.
      */
     handleCollision(entityA, entityB) {
-        console.log(entityA, 'COLLIDED WITH',entityB);
+        //console.log(entityA, 'COLLIDED WITH',entityB);
         var gameState = this.gameState;
         var overlapV = this.collisionResponse.overlapV;
         assert(overlapV !== undefined);

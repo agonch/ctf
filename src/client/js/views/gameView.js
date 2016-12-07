@@ -114,8 +114,11 @@ class GameView {
         this._drawTimer(this.buildPhase);
     }
 
-    startGame(gameTime) {
+    startGame(gameTime, objects, turrets, namesToTeams) {
 	    this.gameCountdown = gameTime;
+        this.namesToTeams = namesToTeams;
+	    this.objectPositions = objects;
+	    this.turretStates = turrets;
 	    this.buildPhase = false;
         var that = this;
         this.gameInterval = setInterval(function () {
@@ -201,7 +204,6 @@ class GameView {
     }
 
 	_drawGridLines() {
-
         for (var i = 0; i <= this.boardSize[0]; i+=GRID_SIZE) {
             var [offsetX, offsetY] = this._getLocalCoords(i, 0);
             this.context.beginPath();
@@ -397,7 +399,6 @@ class GameView {
 
                     // For now, just update the simple logic of the turret turning at a constant
                     turret.angle += turret.speed * Step_Deficit;
-
                     __drawTurret(this.context, x, y, turret.angle, Team_Colors[team]);
 
                     break;
@@ -502,6 +503,7 @@ class GameView {
 
 // Draw a turret with the given angle in degrees and color
 function __drawTurret(context, x, y, angle, color) {
+
     const basePadding = 0.1;  // factor of GRID_SIZE
     context.fillStyle = color;
     context.fillRect(x + GRID_SIZE*basePadding, y + GRID_SIZE*basePadding, 

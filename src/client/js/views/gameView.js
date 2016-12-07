@@ -361,6 +361,10 @@ class GameView {
 
 	removePlayer(name) {
 		delete this.players[name];
+		delete this.namesToTeams[name];
+		if (name in this.healthValues['players']) {
+		    delete this.healthValues['players'][name];
+        }
 		this.draw();
 	}
 

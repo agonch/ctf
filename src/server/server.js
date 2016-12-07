@@ -211,6 +211,8 @@ function GameLoop() {
 
             GameLogic.tickFlagPositions(gameState);
 
+            GameLogic.tickScores(gameState);
+
             /* Note, we first 'tick' objects and update their positions, then we do collision
              * detection. For those objects that collided, we correct their position. */
             var [wallsToRemove, bulletsToRemove, healthUpdates] = gameState.Grid.update();
@@ -233,6 +235,8 @@ function GameLoop() {
             io.to(gameId).emit('updatePlayerPositions', names, nameToPosition);
 
             io.to(gameId).emit('updateFlagPositions', gameState.getFlagPositions());
+
+            io.to(gameId).emit('updateScores', gameState.getScores());
         }
     },
         1000 / TickRate /* TickRate of 40 FPS */);

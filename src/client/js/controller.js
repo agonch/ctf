@@ -130,6 +130,12 @@
             });
         });
 
+        socket.on('updateScores', function(scores) {
+            Object.keys(scores).forEach(flagTeam => {
+                GAME_VIEW.setScore(flagTeam, scores[flagTeam])
+            });
+        });
+
         // Triggered when turrets have changed behavioral states, syncing all attributes back to the server's
         socket.on('updateTurrets', function(updatedStates) {
             // updatedStates maps turretId -> turretState

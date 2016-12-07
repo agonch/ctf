@@ -80,6 +80,11 @@ class GameView {
         this.flagPositions = {
             'TeamRight': this.flagBasePositions['TeamRight'],
             'TeamLeft': this.flagBasePositions['TeamLeft']
+        };
+
+        this.scores = {
+            'TeamRight': 0,
+            'TeamLeft': 0
         }
 
 
@@ -110,6 +115,7 @@ class GameView {
         this._drawHealths();
         this._drawFlagBases();
         this._drawFlags();
+        this._drawScores();
     }
 
     // Fix outdated properties in states passed by server during initialization
@@ -144,6 +150,11 @@ class GameView {
         this.context.fillStyle = 'blue';
         this.context.fillRect(0, 0, this.boardSize[0] + this.canvas.width * 2, 
             this.boardSize[1] + this.canvas.height * 2);
+    }
+
+    _drawScores() {
+	    document.getElementById('scores').innerHTML = "TeamRight: " + this.scores['TeamRight'] + ", "
+            + "TeamLeft: " + this.scores['TeamLeft'];
     }
 
     _drawFlagBases() {
@@ -313,6 +324,10 @@ class GameView {
 
 	setFlagLocation(flagTeam, pos) {
         this.flagPositions[flagTeam] = pos;
+    }
+
+    setScore(flagTeam, score) {
+        this.scores[flagTeam] = score;
     }
 
     moveCamera(deltaX, deltaY) {

@@ -3,7 +3,7 @@
 // Constants (these values can change later if desired)
 const MaxPlayersPerTeam = 8; // note, ok to be >= # spawn points
 const GameBlockSize = 50; // in pixels
-const ValidObjectTypes = ['wall', 'turret', 'flag', 'flagBase'];    // Validate objectType sent by client before propagating to other players
+const ValidObjectTypes = ['wall', 'turret'];    // Validate objectType sent by client before propagating to other players
 const MaxTurretsPerTeam = 3;    // TODO: indicate client-side what limits are and when they're reached
 
 // Constants for SpatialGrid to use to update health in case of collisions
@@ -485,6 +485,10 @@ module.exports = class GameState {
         this.flags[flagTeam].boundingBox.pos.y = this.flags[flagTeam].location[1];
     }
 
+    updateScores(flagTeam, score) {
+        this.points[flagTeam] = score;
+    }
+
     playerTouchedFlag(playerId, flagTeam) {
         console.log("Player on team: " + this.getPlayerTeam(playerId) + " touched flag of team: " + flagTeam);
         // If a player touches his own flag and it's currently captured
@@ -562,6 +566,13 @@ module.exports = class GameState {
         return {
             'TeamRight': this.flags['TeamRight'].location,
             'TeamLeft': this.flags['TeamLeft'].location
+        };
+    }
+
+    getScores() {
+        return {
+            'TeamRight': this.points['TeamRight'],
+            'TeamLeft': this.points['TeamLeft']
         };
     }
 

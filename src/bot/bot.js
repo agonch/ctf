@@ -92,7 +92,7 @@ function setupSocket(socket) {
     socket.on('updateObjects', function({x, y, objectType, vetoCount, team, deleted, details}) {
         // Some other teammate has selected a wall, (or could have been you after broadcasted to your team).
         // Display it.
-        console.log(x, y, objectType, vetoCount, team, deleted);
+        // console.log(x, y, objectType, vetoCount, team, deleted);
     });
 
 }

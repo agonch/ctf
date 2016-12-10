@@ -71,7 +71,7 @@ module.exports = class Bot {
             if (this.namesToTeam[this.name] !== this.namesToTeam[name]) {
                 // some enemy position
                 var enemy_pos = this.nameToPosition[name];
-                console.log(bot_pos, enemy_pos);
+                // console.log(bot_pos, enemy_pos);
                 var distance = playerDistance(bot_pos, enemy_pos);
                 if (distance < closestDistance) {
                     closestDistance = distance;

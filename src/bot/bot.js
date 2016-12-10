@@ -52,7 +52,7 @@ function setupSocket(socket) {
         socket.emit('calibrate:start', Date.now());
         setInterval(function () {
             socket.emit('calibrate:start', Date.now());
-        }, 2000);
+        }, 8000);
 
         socket.emit('client_ready');
     });
@@ -70,7 +70,7 @@ function setupSocket(socket) {
         var startTime = serverTime - totalOffset;
         LATENCY = clientTime - startTime;
 
-        console.log("Bot:", bot.name, " LATENCY:", LATENCY);
+        console.log("Bot:", bot.name, " LATENCY:", LATENCY, "averageTickRate", averageTickRate);
     });
 
     socket.on('updatePlayerPositions', function (names, positions) {

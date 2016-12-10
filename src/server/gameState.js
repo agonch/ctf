@@ -1,7 +1,7 @@
 /* Game state for two teams, of 4 players */
 
 // Constants (these values can change later if desired)
-const MaxPlayersPerTeam = 2; // note, ok to be >= # spawn points
+const MaxPlayersPerTeam = 4; // note, ok to be >= # spawn points
 const GameBlockSize = 50; // in pixels
 const ValidObjectTypes = ['wall', 'turret'];    // Validate objectType sent by client before propagating to other players
 const MaxTurretsPerTeam = 3;    // TODO: indicate client-side what limits are and when they're reached

@@ -21,8 +21,7 @@ socket.on('disconnect', () => {
     process.exit();
 });
 
-var TickRate = 0;
-var Latency = 0;
+var LATENCY = 0;
 
 // Set socket listeners
 function setupSocket(socket) {
@@ -53,7 +52,7 @@ function setupSocket(socket) {
         socket.emit('calibrate:start', Date.now());
         setInterval(function () {
             socket.emit('calibrate:start', Date.now());
-        }, 1000);
+        }, 2000);
 
         socket.emit('client_ready');
     });
@@ -68,12 +67,10 @@ function setupSocket(socket) {
         // Separate the latency from the totalOffset of clocks to get the offset of our clock vs. the server
 
         var clientTime = Date.now();
-        var offset = (totalOffset + (clientTime - serverTime)) / 2;
-        var firstTimeCalibrating = (TickRate === 0);
-        TickRate = averageTickRate;    // Update the tick rate the server is actually updating client at
-        Latency = totalOffset - offset;
+        var startTime = serverTime - totalOffset;
+        LATENCY = clientTime - startTime;
 
-        console.log("average latency (Time_Offset) =", offset, "ms", "for name:", bot.name);
+        console.log("Bot:", bot.name, " LATENCY:", LATENCY);
     });
 
     socket.on('updatePlayerPositions', function (names, positions) {

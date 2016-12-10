@@ -53,12 +53,12 @@ function setupSocket(socket) {
         socket.emit('calibrate:start', Date.now());
         setInterval(function () {
             socket.emit('calibrate:start', Date.now());
-        }, 500);
+        }, 1000);
 
         socket.emit('client_ready');
     });
 
-    socket.on('initialize_denied', function (prevInputData, reason) {
+    socket.on('initialize_d enied', function (prevInputData, reason) {
         console.log('Cannot initialize game because of: ' + reason);
         process.exit(1);
     });
@@ -66,19 +66,14 @@ function setupSocket(socket) {
     socket.on('calibrate:respond', function (serverTime, totalOffset, averageTickRate) {
         // Network Time Protocol
         // Separate the latency from the totalOffset of clocks to get the offset of our clock vs. the server
-        // offset = ((serverTime - startTime) + (serverTime - clientTime)) / 2,
-        //  where startTime was client's time at 'calibrate:start' (serverTime-totalOffset), therefore:
-        // offset = (totalOffset + (serverTime - clientTime)) / 2
-        var clientTime = Date.now();
-        var offset = (totalOffset + (serverTime - clientTime)) / 2;
 
+        var clientTime = Date.now();
+        var offset = (totalOffset + (clientTime - serverTime)) / 2;
         var firstTimeCalibrating = (TickRate === 0);
         TickRate = averageTickRate;    // Update the tick rate the server is actually updating client at
         Latency = totalOffset - offset;
 
-        // if (firstTimeCalibrating) {
-        console.log("Client clock ahead of server by about:", -offset, "ms");
-        // }
+        console.log("average latency (Time_Offset) =", offset, "ms", "for name:", bot.name);
     });
 
     socket.on('updatePlayerPositions', function (names, positions) {

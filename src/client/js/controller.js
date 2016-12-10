@@ -97,11 +97,8 @@
         socket.on('calibrate:respond', function(serverTime, totalOffset, averageTickRate) {
             // Network Time Protocol
             // Separate the latency from the totalOffset of clocks to get the offset of our clock vs. the server
-            // offset = ((serverTime - startTime) + (serverTime - clientTime)) / 2,
-            //  where startTime was client's time at 'calibrate:start' (serverTime-totalOffset), therefore:
-            // offset = (totalOffset + (serverTime - clientTime)) / 2
             var clientTime = Date.now();
-            var offset = (totalOffset + (serverTime - clientTime)) / 2;
+            var offset = (totalOffset + (clientTime - serverTime)) / 2;
 
             var firstTimeCalibrating = (TICK_RATE === 0);
             Time_Offset = offset;
@@ -109,7 +106,7 @@
             LATENCY = totalOffset - offset;
 
             if (firstTimeCalibrating) {
-                console.log("Client clock ahead of server by about", -Time_Offset, "ms");
+                console.log("average latency (Time_Offset) =", Time_Offset, "ms");
                 
                 $('#canvas').trigger('initializeStates');   // use new calibration to correct initial states
             }

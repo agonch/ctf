@@ -53,7 +53,7 @@ function setupSocket(socket) {
         socket.emit('calibrate:start', Date.now());
         setInterval(function () {
             socket.emit('calibrate:start', Date.now());
-        }, 250);
+        }, 500);
 
         socket.emit('client_ready');
     });
@@ -76,9 +76,9 @@ function setupSocket(socket) {
         TickRate = averageTickRate;    // Update the tick rate the server is actually updating client at
         Latency = totalOffset - offset;
 
-        if (firstTimeCalibrating) {
-            console.log("Client clock ahead of server by about", -offset, "ms");
-        }
+        // if (firstTimeCalibrating) {
+        console.log("Client clock ahead of server by about:", -offset, "ms");
+        // }
     });
 
     socket.on('updatePlayerPositions', function (names, positions) {

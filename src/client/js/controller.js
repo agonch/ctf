@@ -98,12 +98,13 @@
             // Network Time Protocol
             // Separate the latency from the totalOffset of clocks to get the offset of our clock vs. the server
             var clientTime = Date.now();
-            var offset = (totalOffset + (clientTime - serverTime)) / 2;
+            var startTime = serverTime - totalOffset;
+            var offset = (totalOffset + (serverTime - clientTime)) / 2;
 
             var firstTimeCalibrating = (TICK_RATE === 0);
             Time_Offset = offset;
             TICK_RATE = averageTickRate;    // Update the tick rate the server is actually updating client at
-            LATENCY = totalOffset - offset;
+            LATENCY = clientTime - startTime;
 
             if (firstTimeCalibrating) {
                 console.log("average latency (Time_Offset) =", Time_Offset, "ms");

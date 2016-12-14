@@ -40,6 +40,7 @@ function setupSocket(socket) {
     socket.on('removePlayer', function (name) {
         if (bot.name !== name) {
             console.log("Player disconnected: " + name);
+            bot.removePlayer(name);
         }
     });
 
@@ -57,7 +58,7 @@ function setupSocket(socket) {
         socket.emit('client_ready');
     });
 
-    socket.on('initialize_d enied', function (prevInputData, reason) {
+    socket.on('initialize_denied', function (prevInputData, reason) {
         console.log('Cannot initialize game because of: ' + reason);
         process.exit(1);
     });
@@ -88,11 +89,7 @@ function setupSocket(socket) {
     socket.on('updateHealths', function (objType, healthUpdates) {
     });
 
-
     socket.on('updateObjects', function({x, y, objectType, vetoCount, team, deleted, details}) {
-        // Some other teammate has selected a wall, (or could have been you after broadcasted to your team).
-        // Display it.
-        // console.log(x, y, objectType, vetoCount, team, deleted);
     });
 
 }

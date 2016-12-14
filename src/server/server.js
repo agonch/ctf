@@ -193,6 +193,21 @@ io.on('connection', function (socket) {
             }
             // broadcast selected object to its team
             io.to(gameId + attributes.team).emit('updateObjects', attributes);
+
+            if (attributes.objectType === 'turret') {
+                var leftTurretStates = {};
+                var rightTurretStates = {};
+                for (var turretId in gameState.turretStates) {
+                    var curTurret = gameState.turretStates[turretId];
+                    if (curTurret.team === 'TeamLeft') {
+                        leftTurretStates[turretId] = curTurret;
+                    } else {
+                        rightTurretStates[turretId] = curTurret;
+                    }
+                }
+                io.to(gameId + 'TeamLeft').emit('updateTurrets', leftTurretStates);
+                io.to(gameId + 'TeamRight').emit('updateTurrets', rightTurretStates);
+            }
         }
     });
 });
@@ -214,32 +229,20 @@ function GameLoop() {
                 continue;
             }
 
-            const [namesToPositionsLeft, namesToTeamLeft] = gameState.getAllTeamPlayers(null, 'TeamLeft');
-            const [namesToPositionsRight, namesToTeamRight] = gameState.getAllTeamPlayers(null, 'TeamRight');
+            GameLogic.tickPlayerPositions(gameState);
 
             if (gameState.buildPhase) {
                 /* During build phase, we do not care about collision detection. Also, we only emit player
                  * positions to "their" team.
                  */
+                const [namesToPositionsLeft, namesToTeamLeft] = gameState.getAllTeamPlayers(null, 'TeamLeft');
+                const [namesToPositionsRight, namesToTeamRight] = gameState.getAllTeamPlayers(null, 'TeamRight');
                 io.to(gameId + 'TeamLeft').emit('updatePlayerPositions', Object.keys(namesToPositionsLeft), namesToPositionsLeft);
                 io.to(gameId + 'TeamRight').emit('updatePlayerPositions', Object.keys(namesToPositionsRight), namesToPositionsRight);
 
-                var leftTurretStates = {};
-                var rightTurretStates = {};
-                for (var turretId in gameState.turretStates) {
-                    var curTurret = gameState.turretStates[turretId];
-                    if (curTurret.team === 'TeamLeft') {
-                        leftTurretStates[turretId] = curTurret;
-                    } else {
-                        rightTurretStates[turretId] = curTurret;
-                    }
-                }
-                io.to(gameId + 'TeamLeft').emit('updateTurrets', leftTurretStates);
-                io.to(gameId + 'TeamRight').emit('updateTurrets', rightTurretStates);
-
+                continue; // the rest is only relevant outside of build mode
             }
 
-            GameLogic.tickPlayerPositions(gameState);
             GameLogic.tickFlagPositions(gameState);
             GameLogic.tickScores(gameState);
 
@@ -251,7 +254,6 @@ function GameLoop() {
                 gameState.respawnAll();
             }
 
-
             if (!gameState.buildPhase && gameState.started) {
                 // Update turret states
                 // Accuracy of our timing tends to degrade noticeably past about a second,
@@ -260,60 +262,51 @@ function GameLoop() {
                 if (tick !== 0) {
                     if (Object.keys(updatedTurretStates).length) {
                         // Send 'updateTurrets' event only if a state has been updated
-                        io.to(gameId + 'TeamLeft').emit('updateTurrets', updatedTurretStates);
-                        io.to(gameId + 'TeamRight').emit('updateTurrets', updatedTurretStates);
+                        broadcastToGame(gameId, 'updateTurrets', updatedTurretStates);
                     }
                 } else {
                     // Resync states completely
-                    io.to(gameId + 'TeamLeft').emit('updateTurrets', gameState.turretStates);
-                    io.to(gameId + 'TeamRight').emit('updateTurrets', gameState.turretStates);
+                    broadcastToGame(gameId, 'updateTurrets', gameState.turretStates);
                 }
 
                 /* Note, we first 'tick' objects and update their positions, then we do collision
                  * detection. For those objects that collided, we correct their position. */
                 var [wallsToRemove, bulletsToRemove, healthUpdates] = gameState.Grid.update();
                 wallsToRemove.forEach(wall => {
-                    io.to(gameId + 'TeamLeft').emit('updateObjects', wall);
-                    io.to(gameId + 'TeamRight').emit('updateObjects', wall);
+                    broadcastToGame(gameId, 'updateObjects', wall);
                 });
                 if (Object.keys(bulletsToRemove).length) {
-                    io.to(gameId + 'TeamLeft').emit('updateBullets', bulletsToRemove);
-                    io.to(gameId + 'TeamRight').emit('updateBullets', bulletsToRemove);
+                    broadcastToGame(gameId, 'updateBullets', bulletsToRemove);
                 }
 
                 // Update bullet states
                 var updatedBullets = GameLogic.tickBullets(gameState);
                 if (Object.keys(updatedBullets).length) {
                     // Send clients updates only if bullets are created/destroyed
-                    io.to(gameId + 'TeamLeft').emit('updateBullets', updatedBullets);
-                    io.to(gameId + 'TeamRight').emit('updateBullets', updatedBullets);
+                    broadcastToGame(gameId, 'updateBullets', updatedBullets);
                 }
 
                 if (Object.keys(healthUpdates.players).length) {
-                    io.to(gameId + 'TeamLeft').emit('updateHealths', 'players', healthUpdates.players);
-                    io.to(gameId + 'TeamRight').emit('updateHealths', 'players', healthUpdates.players);
+                    broadcastToGame(gameId, 'updateHealths', 'players', healthUpdates.players);
                 }
                 if (Object.keys(healthUpdates.walls).length) {
-                    io.to(gameId + 'TeamLeft').emit('updateHealths', 'walls', healthUpdates.walls);
-                    io.to(gameId + 'TeamRight').emit('updateHealths', 'walls', healthUpdates.walls);
-
+                    broadcastToGame(gameId, 'updateHealths', 'walls', healthUpdates.walls);
                 }
 
-                io.to(gameId + 'TeamLeft').emit('updatePlayerPositions', Object.keys(namesToPositionsRight), namesToPositionsRight);
-                io.to(gameId + 'TeamRight').emit('updatePlayerPositions', Object.keys(namesToPositionsLeft), namesToPositionsLeft);
+                // broadcast all player positions to both teams
+                var [namesToPositions, namesToTeam] = gameState.getAllPlayers();
+                var namesList = Object.keys(namesToPositions);
+                broadcastToGame(gameId, 'updatePlayerPositions', namesList, namesToPositions);
+
+                broadcastToGame(gameId, 'updateFlagPositions', gameState.getFlagPositions());
+                broadcastToGame(gameId, 'updateScores', gameState.getScores());
             }
-
-
-            io.to(gameId + 'TeamLeft').emit('updateFlagPositions', gameState.getFlagPositions());
-            io.to(gameId + 'TeamRight').emit('updateFlagPositions', gameState.getFlagPositions());
-
-            io.to(gameId + 'TeamLeft').emit('updateScores', gameState.getScores());
-            io.to(gameId + 'TeamRight').emit('updateScores', gameState.getScores());
         }
     },
         1000 / TickRate /* TickRate of 40 FPS */);
 }
 
+/* Emits to both teams of game the event and listed parameters */
 function broadcastToGame(gameId, event, ...args) {
     io.to(gameId + 'TeamLeft').emit(event, ...args);
     io.to(gameId + 'TeamRight').emit(event, ...args);

@@ -125,9 +125,9 @@ module.exports = class GameState {
         this.points = {
             'TeamRight': 0,
             'TeamLeft': 0
-        }
+        };
 
-        this.buildCountdown = 60;
+        this.buildCountdown = 120;
         this.buildPhase = true;
         this.started = false;
     }

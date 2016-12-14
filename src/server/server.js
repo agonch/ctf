@@ -44,8 +44,9 @@ io.on('connection', function (socket) {
         var result = lobbyManager.getGameState(socket.id);
         if (result !== undefined) {
             var [gameState, gameId] = result;
+            var team = gameState.getPlayerTeam(socket.id);
             console.log(gameState.getPlayerName(socket.id) + ' has disconnected from the chat.' + socket.id);
-            io.to(gameId).emit('removePlayer', gameState.getPlayerName(socket.id));
+            io.to(gameId + team).emit('removePlayer', gameState.getPlayerName(socket.id));
             lobbyManager.deletePlayer(socket.id);
         }
     });
@@ -83,9 +84,6 @@ io.on('connection', function (socket) {
             }
         }
 
-        //var resultBoardSize =
-
-
         const startData = {
             spawnPoint: gameState.getPlayerPosition(socket.id), // initially is default location for new player
             boardSize: gameState.boardSize,
@@ -107,7 +105,8 @@ io.on('connection', function (socket) {
         socket.emit('initialize_approved', startData);
 
         // for other players, (if any), send them just new player name and position
-        io.to(gameId).emit('newPlayer', name, gameState.getPlayerPosition(socket.id), namesToTeam[name]);
+        var team = namesToTeam[name];
+        io.to(gameId + team).emit('newPlayer', name, gameState.getPlayerPosition(socket.id), namesToTeam[name]);
     });
 
     socket.on('client_ready', () => {
@@ -146,13 +145,15 @@ io.on('connection', function (socket) {
         }
     });
 
+    /* During "build" phase, this event is fired when a user places some object on the board.
+     * Ex., left-clicks to place a wall. Or, right-clicks to veto a wall placement.
+     */
     socket.on('selectObjectLocation', (objectType, location, action) => {
         var result = lobbyManager.getGameState(socket.id);
         if (result !== undefined) {
             var [gameState, gameId] = result;
             location = [location.x, location.y];
             var vetoCount;
-            var team;
 
             if (action === 'select') {
                 var stateChanged = gameState.addObject(objectType, location, socket.id);
@@ -161,7 +162,6 @@ io.on('connection', function (socket) {
                 }
 
                 vetoCount = gameState.selectedObjects[location].vetoCount;
-                team = gameState.getPlayerTeam(socket.id);
             } else if (action === 'veto') {
                 if (location in gameState.selectedObjects) {
                     var gotDeleted = gameState.incrementVetoCount(location, socket.id);
@@ -169,21 +169,20 @@ io.on('connection', function (socket) {
                         vetoCount = -1;
                     } else {
                         vetoCount = gameState.selectedObjects[location].vetoCount;
-                        team = gameState.getPlayerTeam(socket.id);
                     }
                 } else {
                     return; // user touching object of different team
                 }
             }
 
-            // console.log('gameState.selectedObjects = ', gameState.selectedObjects);
+            // console.log('gameState.selectedObjects = ', JSON.stringify(gameState.selectedObjects, null, 4));
 
             var attributes = {
                 x: location[0],
                 y: location[1],
                 objectType: objectType,
                 vetoCount: vetoCount,
-                team: team,
+                team: gameState.getPlayerTeam(socket.id),
                 deleted: vetoCount === -1
             };
 
@@ -192,12 +191,8 @@ io.on('connection', function (socket) {
             if (gameState.selectedObjects[location] && gameState.selectedObjects[location].details) {
                 attributes.details = gameState.selectedObjects[location].details;
             }
-
-            if (attributes.team === 'TeamLeft') {
-                io.to(gameId + 'TeamLeft').emit('updateObjects', attributes);
-            } else {
-                io.to(gameId + 'TeamRight').emit('updateObjects', attributes);
-            }
+            // broadcast selected object to its team
+            io.to(gameId + attributes.team).emit('updateObjects', attributes);
         }
     });
 });
@@ -219,13 +214,16 @@ function GameLoop() {
                 continue;
             }
 
-
             const [namesToPositionsLeft, namesToTeamLeft] = gameState.getAllTeamPlayers(null, 'TeamLeft');
             const [namesToPositionsRight, namesToTeamRight] = gameState.getAllTeamPlayers(null, 'TeamRight');
 
-            io.to(gameId + 'TeamLeft').emit('updatePlayerPositions', Object.keys(namesToPositionsLeft), namesToPositionsLeft);
-            io.to(gameId + 'TeamRight').emit('updatePlayerPositions', Object.keys(namesToPositionsRight), namesToPositionsRight);
             if (gameState.buildPhase) {
+                /* During build phase, we do not care about collision detection. Also, we only emit player
+                 * positions to "their" team.
+                 */
+                io.to(gameId + 'TeamLeft').emit('updatePlayerPositions', Object.keys(namesToPositionsLeft), namesToPositionsLeft);
+                io.to(gameId + 'TeamRight').emit('updatePlayerPositions', Object.keys(namesToPositionsRight), namesToPositionsRight);
+
                 var leftTurretStates = {};
                 var rightTurretStates = {};
                 for (var turretId in gameState.turretStates) {
@@ -242,12 +240,8 @@ function GameLoop() {
             }
 
             GameLogic.tickPlayerPositions(gameState);
-
-
             GameLogic.tickFlagPositions(gameState);
-
             GameLogic.tickScores(gameState);
-
 
             if (!gameState.buildPhase && !gameState.started) {
                 const [namesToPositions, namesToTeam] = gameState.getAllPlayers();
@@ -318,6 +312,11 @@ function GameLoop() {
         }
     },
         1000 / TickRate /* TickRate of 40 FPS */);
+}
+
+function broadcastToGame(gameId, event, ...args) {
+    io.to(gameId + 'TeamLeft').emit(event, ...args);
+    io.to(gameId + 'TeamRight').emit(event, ...args);
 }
 
 // Update average tick rate given tickIndex [0, TickRate)

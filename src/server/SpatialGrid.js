@@ -72,7 +72,7 @@ class SpatialGrid {
                 // if here, i will assume boundingBox is of shape SAT.Box
                 cellsOverlaps = this.getCellsBoxOverlaps(boundingBox.pos.x, boundingBox.pos.y, boundingBox.w, boundingBox.h);
             }
-            console.log('for ', boundingBox, ', cells box overlaps = ', cellsOverlaps);
+            // console.log('for ', boundingBox, ', cells box overlaps = ', cellsOverlaps);
             cellsOverlaps.forEach(cell => {
                 if (!(cell in this.cellsStaticEntities)) {
                     this.cellsStaticEntities[cell] = [];

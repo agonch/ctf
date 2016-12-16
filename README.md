@@ -4,6 +4,11 @@
 cd src/server/   
 npm install    
 
+#### Running
+cd src/server/
+node server.js
+Open browser at http://localhost:3000/
+
 
 #### 4 person free-for-all capture the flag
 -------
